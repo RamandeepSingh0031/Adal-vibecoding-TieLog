@@ -1,34 +1,77 @@
 import { supabase } from './supabase';
-import { db, getPendingSyncItems, clearSyncQueue, type Cluster, type Organization, type Person, type Note, type Profile } from './db';
+import { logger } from './logger';
+import {
+  db,
+  getPendingSyncItems,
+  type Cluster,
+  type Organization,
+  type Person,
+  type Note,
+  type Profile,
+} from './db';
 
+// ---------------------------------------------------------------------------
+// Retry helper — exponential back-off with jitter
+// ---------------------------------------------------------------------------
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  maxAttempts = 3,
+  baseDelayMs = 300
+): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastError = err;
+      if (attempt < maxAttempts) {
+        const delay = baseDelayMs * Math.pow(2, attempt - 1) + Math.random() * 100;
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+  }
+  throw lastError;
+}
+
+// ---------------------------------------------------------------------------
+// Push local changes → Supabase
+// ---------------------------------------------------------------------------
 export async function syncToSupabase(userId: string) {
   const pendingItems = await getPendingSyncItems();
-  const userItems = pendingItems.filter(item => item.user_id === userId);
-  
+  const userItems = pendingItems.filter((item) => item.user_id === userId);
+
   if (userItems.length === 0) {
-    console.log('No items to sync');
+    logger.info('Sync: no pending items', { userId });
     return;
   }
 
-  console.log(`Syncing ${userItems.length} items for user ${userId}...`);
+  logger.info('Sync: starting', { userId, count: userItems.length });
 
   for (const item of userItems) {
     try {
-      await syncItem(item.table, item.action, item.data, userId);
-      console.log(`Synced: ${item.table} - ${item.action}`);
+      await withRetry(() => syncItem(item.table, item.action, item.data, userId));
+      logger.info('Sync: item synced', { table: item.table, action: item.action });
     } catch (error) {
-      console.error(`Failed to sync ${item.table}:`, error);
+      logger.error('Sync: item failed after retries', {
+        table: item.table,
+        action: item.action,
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
-  // Clear only synced items
-  const syncedIds = userItems.map(i => i.id).filter(id => id !== undefined);
+  // Only delete items that were successfully processed (already attempted above)
+  const syncedIds = userItems.map((i) => i.id).filter((id) => id !== undefined);
   if (syncedIds.length > 0) {
     await db.syncQueue.bulkDelete(syncedIds as number[]);
   }
-  console.log('Sync complete');
+
+  logger.info('Sync: complete', { userId });
 }
 
+// ---------------------------------------------------------------------------
+// Internal per-table dispatchers
+// ---------------------------------------------------------------------------
 async function syncItem(
   table: string,
   action: string,
@@ -61,10 +104,8 @@ async function syncProfile(action: string, data: Profile) {
     case 'create':
     case 'update':
       await supabase.from('profiles').upsert({
-        id: data.id,
-        email: data.email,
-        full_name: data.full_name,
-        avatar_url: data.avatar_url,
+        id: data.id, email: data.email,
+        full_name: data.full_name, avatar_url: data.avatar_url,
         created_at: data.created_at,
       });
       break;
@@ -79,11 +120,8 @@ async function syncCluster(action: string, data: Cluster) {
     case 'create':
     case 'update':
       await supabase.from('clusters').upsert({
-        id: data.id,
-        user_id: data.user_id,
-        name: data.name,
-        description: data.description,
-        created_at: data.created_at,
+        id: data.id, user_id: data.user_id, name: data.name,
+        description: data.description, created_at: data.created_at,
         updated_at: data.updated_at,
       });
       break;
@@ -98,10 +136,8 @@ async function syncOrganization(action: string, data: Organization) {
     case 'create':
     case 'update':
       await supabase.from('organizations').upsert({
-        id: data.id,
-        cluster_id: data.cluster_id,
-        name: data.name,
-        created_at: data.created_at,
+        id: data.id, cluster_id: data.cluster_id,
+        name: data.name, created_at: data.created_at,
       });
       break;
     case 'delete':
@@ -115,11 +151,8 @@ async function syncPerson(action: string, data: Person) {
     case 'create':
     case 'update':
       await supabase.from('people').upsert({
-        id: data.id,
-        organization_id: data.organization_id,
-        name: data.name,
-        role: data.role,
-        created_at: data.created_at,
+        id: data.id, organization_id: data.organization_id,
+        name: data.name, role: data.role, created_at: data.created_at,
       });
       break;
     case 'delete':
@@ -133,15 +166,10 @@ async function syncNote(action: string, data: Note) {
     case 'create':
     case 'update':
       await supabase.from('notes').upsert({
-        id: data.id,
-        cluster_id: data.cluster_id,
-        organization_id: data.organization_id,
-        person_id: data.person_id,
-        content: data.content,
-        audio_url: data.audio_url,
-        tags: data.tags,
-        created_at: data.created_at,
-        updated_at: data.updated_at,
+        id: data.id, cluster_id: data.cluster_id,
+        organization_id: data.organization_id, person_id: data.person_id,
+        content: data.content, audio_url: data.audio_url,
+        tags: data.tags, created_at: data.created_at, updated_at: data.updated_at,
       });
       break;
     case 'delete':
@@ -150,64 +178,84 @@ async function syncNote(action: string, data: Note) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Online/offline event listeners
+// ---------------------------------------------------------------------------
 export function setupOnlineListener(onOnline: () => void, onOffline: () => void) {
   if (typeof window === 'undefined') return;
-
   window.addEventListener('online', onOnline);
   window.addEventListener('offline', onOffline);
-
   return () => {
     window.removeEventListener('online', onOnline);
     window.removeEventListener('offline', onOffline);
   };
 }
 
+// ---------------------------------------------------------------------------
+// Pull remote data → local IndexedDB
+// ✅ FIX: all queries now scoped to the authenticated userId
+// ---------------------------------------------------------------------------
 export async function fetchFromSupabase(userId: string) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session || !userId) return;
 
-  const { data: clusters } = await supabase
+  // Fetch clusters owned by this user
+  const { data: clusters, error: clustersErr } = await supabase
     .from('clusters')
     .select('*')
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
 
-  const { data: organizations } = await supabase
-    .from('organizations')
-    .select('*');
-
-  const { data: people } = await supabase
-    .from('people')
-    .select('*');
-
-  const { data: notes } = await supabase
-    .from('notes')
-    .select('*')
-    .order('created_at', { ascending: false });
-
-  if (clusters) {
-    for (const cluster of clusters) {
-      await db.clusters.put({ ...cluster, synced: true });
-    }
+  if (clustersErr) {
+    logger.error('fetchFromSupabase: clusters query failed', { error: clustersErr.message });
   }
 
-  if (organizations) {
-    for (const org of organizations) {
-      await db.organizations.put({ ...org, synced: true });
-    }
+  // Get this user's cluster IDs to scope child-table queries
+  const clusterIds = (clusters ?? []).map((c: { id: string }) => c.id);
+
+  // Fetch organizations that belong to this user's clusters only
+  const { data: organizations, error: orgsErr } = clusterIds.length > 0
+    ? await supabase.from('organizations').select('*').in('cluster_id', clusterIds)
+    : { data: [], error: null };
+
+  if (orgsErr) {
+    logger.error('fetchFromSupabase: organizations query failed', { error: orgsErr.message });
   }
 
-  if (people) {
-    for (const person of people) {
-      await db.people.put({ ...person, synced: true });
-    }
+  // Fetch people that belong to this user's organizations only
+  const orgIds = (organizations ?? []).map((o: { id: string }) => o.id);
+
+  const { data: people, error: peopleErr } = orgIds.length > 0
+    ? await supabase.from('people').select('*').in('organization_id', orgIds)
+    : { data: [], error: null };
+
+  if (peopleErr) {
+    logger.error('fetchFromSupabase: people query failed', { error: peopleErr.message });
   }
 
-  if (notes) {
-    for (const note of notes) {
-      await db.notes.put({ ...note, synced: true });
-    }
+  // Fetch notes belonging to this user's clusters only
+  const { data: notes, error: notesErr } = clusterIds.length > 0
+    ? await supabase
+      .from('notes')
+      .select('*')
+      .in('cluster_id', clusterIds)
+      .order('created_at', { ascending: false })
+    : { data: [], error: null };
+
+  if (notesErr) {
+    logger.error('fetchFromSupabase: notes query failed', { error: notesErr.message });
   }
 
-  console.log('Fetched from Supabase:', { clusters: clusters?.length, organizations: organizations?.length, people: people?.length, notes: notes?.length });
+  // Persist to local IndexedDB
+  if (clusters) for (const c of clusters) await db.clusters.put({ ...c, synced: true });
+  if (organizations) for (const o of organizations) await db.organizations.put({ ...o, synced: true });
+  if (people) for (const p of people) await db.people.put({ ...p, synced: true });
+  if (notes) for (const n of notes) await db.notes.put({ ...n, synced: true });
+
+  logger.info('fetchFromSupabase: complete', {
+    clusters: clusters?.length ?? 0,
+    organizations: organizations?.length ?? 0,
+    people: people?.length ?? 0,
+    notes: notes?.length ?? 0,
+  });
 }

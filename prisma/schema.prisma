@@ -1,0 +1,82 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Profile {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  fullName  String?
+  avatarUrl String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("profiles")
+}
+
+model Cluster {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  name        String
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  organizations Organization[]
+  notes         Note[]
+
+  @@index([userId])
+  @@map("clusters")
+}
+
+model Organization {
+  id        String   @id @default(uuid())
+  clusterId String   @map("cluster_id")
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  cluster  Cluster  @relation(fields: [clusterId], references: [id], onDelete: Cascade)
+  people   Person[]
+  notes    Note[]
+
+  @@index([clusterId])
+  @@map("organizations")
+}
+
+model Person {
+  id            String   @id @default(uuid())
+  organizationId String   @map("organization_id")
+  name          String
+  role          String?
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  notes        Note[]
+
+  @@index([organizationId])
+  @@map("people")
+}
+
+model Note {
+  id             String    @id @default(uuid())
+  clusterId      String?   @map("cluster_id")
+  organizationId String?   @map("organization_id")
+  personId       String?   @map("person_id")
+  content        String
+  audioUrl       String?   @map("audio_url")
+  tags           String[]
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  cluster      Cluster?      @relation(fields: [clusterId], references: [id], onDelete: SetNull)
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  person       Person?       @relation(fields: [personId], references: [id], onDelete: SetNull)
+
+  @@index([clusterId])
+  @@index([organizationId])
+  @@index([personId])
+  @@map("notes")
+}

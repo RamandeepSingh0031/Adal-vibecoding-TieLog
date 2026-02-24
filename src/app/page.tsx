@@ -1,169 +1,430 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { useAppStore } from '@/store/appStore';
-import { useAuth } from '@/hooks/useAuth';
-import { ClusterCard } from '@/components/ClusterCard';
+import { useState, useEffect, useMemo } from "react";
+import Link from "next/link";
+import NeuronBackground from "@/components/NeuronBackground";
 
-export default function Home() {
-  const { user, isLoading: authLoading, userId } = useAuth();
-  const { clusters, loadClusters, addCluster, deleteCluster, isLoading } = useAppStore();
-  const [showForm, setShowForm] = useState(false);
-  const [newClusterName, setNewClusterName] = useState('');
-  const [newClusterDesc, setNewClusterDesc] = useState('');
+export default function LandingPage() {
+  const [email, setEmail] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [emojis, setEmojis] = useState<{ id: number, top: string, left: string, speedX: number, speedY: number, rotation: number }[]>([]);
+  const [flickerWord, setFlickerWord] = useState("thoughts");
+  const [isFlickering, setIsFlickering] = useState(false);
+
+  // Pre-generated static positions to avoid hydration mismatch
+  // Spread across 200% of viewport height to cover hero through pricing
+  const newEmojis = useMemo(() => {
+    // Use a simple seeded-like generator for deterministic values
+    const seeded = (i: number) => {
+      const x = Math.sin(i * 9999) * 10000;
+      return x - Math.floor(x);
+    };
+    return Array.from({ length: 120 }).map((_, i) => ({
+      id: i,
+      top: `${Math.floor(seeded(i) * 500) - 50}%`,
+      left: `${Math.floor(seeded(i + 100) * 100)}%`,
+      speedX: (seeded(i + 200) - 0.5) * 8,
+      speedY: (seeded(i + 300) - 0.5) * 8,
+      rotation: Math.floor(seeded(i + 400) * 360),
+    }));
+  }, []);
 
   useEffect(() => {
-    if (!authLoading) {
-      loadClusters();
-    }
-  }, [userId, authLoading, loadClusters]);
+    setEmojis(newEmojis);
+  }, [newEmojis]);
 
-  if (authLoading) {
-    return (
-      <main className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center">
-        <div className="text-zinc-500">Loading...</div>
-      </main>
-    );
-  }
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIsFlickering(true);
+      setTimeout(() => {
+        setFlickerWord((prev) => (prev === "thoughts" ? "observations" : "thoughts"));
+        setIsFlickering(false);
+      }, 150); // Duration of the flicker/hide phase
+    }, 4000);
+    return () => clearInterval(interval);
+  }, []);
 
-  if (!user) {
-    return (
-      <main className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center">
-        <div className="text-zinc-500">Redirecting to sign in...</div>
-      </main>
-    );
-  }
-
-  const handleCreateCluster = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newClusterName.trim()) return;
-    
-    await addCluster(newClusterName, newClusterDesc);
-    setNewClusterName('');
-    setNewClusterDesc('');
-    setShowForm(false);
+    if (email) {
+      setSubmitted(true);
+      setEmail("");
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (typeof window === "undefined") return;
+    const x = (e.clientX / window.innerWidth - 0.5) * 30;
+    const y = (e.clientY / window.innerHeight - 0.5) * 30;
+    setMousePos({ x, y });
   };
 
   return (
-    <main className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
-      <div className="max-w-4xl mx-auto px-6 py-12">
-        <header className="flex items-center justify-between mb-12">
-          <div>
-            <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">
-              The Logbook
-            </h1>
-            <p className="text-zinc-500 dark:text-zinc-400">
-              Your offline-first private journal
+    <div
+      className="min-h-screen bg-[#0A0A0F] text-[#F4F4F5] selection:bg-[#14B8A6]/30 relative overflow-hidden"
+      onMouseMove={handleMouseMove}
+    >
+      <NeuronBackground />
+      {/* Interactive Background Emojis - Wraps entire canvas */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        {emojis.map((emoji) => (
+          <div
+            key={emoji.id}
+            className="absolute text-sm md:text-base opacity-25 transition-transform duration-300 ease-out"
+            style={{
+              top: emoji.top,
+              left: emoji.left,
+              transform: `translate(${mousePos.x * emoji.speedX}px, ${mousePos.y * emoji.speedY}px) rotate(${emoji.rotation}deg)`,
+            }}
+          >
+            💭
+          </div>
+        ))}
+        {/* Subtle Glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#14B8A6]/10 blur-[120px] rounded-full pointer-events-none"></div>
+      </div>
+
+      {/* Navigation - HeyMessage Inspired */}
+      <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-4">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-2 z-10">
+            <div className="w-8 h-8 rounded-lg bg-[#14B8A6] flex items-center justify-center shadow-[0_0_15px_rgba(20,184,166,0.4)]">
+              <svg className="w-5 h-5 text-[#0A0A0F]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+            </div>
+            <span className="text-xl font-semibold tracking-tight">TieLog</span>
+          </div>
+
+          <div className="hidden md:flex items-center justify-center absolute left-1/2 -translate-x-1/2 gap-8 bg-[#1C1C24]/80 px-8 py-3 rounded-full border border-[#2A2A35] backdrop-blur-md">
+            <a href="#features" className="text-sm font-medium text-[#A1A1AA] hover:text-[#F4F4F5] transition-colors">Features</a>
+            <a href="#why-us" className="text-sm font-medium text-[#A1A1AA] hover:text-[#F4F4F5] transition-colors">Why Us</a>
+            <a href="#pricing" className="text-sm font-medium text-[#A1A1AA] hover:text-[#F4F4F5] transition-colors">Pricing</a>
+          </div>
+
+          <div className="flex items-center gap-4 z-10">
+            <Link href="/auth/signin" className="text-sm font-medium text-[#A1A1AA] hover:text-[#F4F4F5] transition-colors">
+              Log in
+            </Link>
+            <Link href="/auth/signup" className="text-sm px-4 py-2 bg-[#14B8A6] text-[#0A0A0F] font-semibold rounded-full hover:bg-[#2DD4BF] transition-colors shadow-[0_0_10px_rgba(20,184,166,0.2)]">
+              Sign up
+            </Link>
+          </div>
+        </div>
+      </nav>
+
+      {/* Hero Section */}
+      <section
+        className="relative pt-40 pb-32 px-6 flex flex-col items-center justify-center min-h-[90vh] z-10 pointer-events-none"
+      >
+        <div className="relative max-w-4xl mx-auto text-center pointer-events-auto">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#14B8A6]/10 border border-[#14B8A6]/20 text-[#14B8A6] text-sm mb-8 backdrop-blur-sm animate-flicker">
+            <span className="w-2 h-2 rounded-full bg-[#14B8A6] animate-pulse"></span>
+            It&apos;s a Journal. Not a Database
+          </div>
+
+          <h1 className="text-5xl md:text-7xl font-light tracking-tight mb-6 leading-tight">
+            Remember the details
+            <br />
+            <span className="text-[#14B8A6] font-normal">about everyone you meet.</span>
+          </h1>
+
+          <p className="text-xl text-[#A1A1AA] max-w-2xl mx-auto mb-10 leading-relaxed">
+            TieLog is a private, offline-first journal for capturing notes about people.
+            No corporate overhead. No data entry. Just you, and the people who matter.
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <a
+              href="/auth/signup"
+              className="px-8 py-4 bg-[#F4F4F5] text-[#0A0A0F] font-semibold rounded-full hover:bg-white transition-colors shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.2)]"
+            >
+              Start Your Logbook
+            </a>
+            <a
+              href="#pricing"
+              className="px-8 py-4 bg-transparent border border-[#2A2A35] text-[#F4F4F5] font-semibold rounded-full hover:bg-[#1C1C24] transition-colors backdrop-blur-sm"
+            >
+              View Pricing
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Outline */}
+      <section id="features" className="relative py-24 px-6 border-t border-[#1C1C24] bg-transparent backdrop-blur-[2px] z-10">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-5xl font-light mb-6 min-h-[1.2em]">
+              Your{" "}
+              <span
+                className={`transition-opacity duration-150 ${isFlickering ? 'opacity-0' : 'opacity-100'} ${isFlickering ? 'animate-pulse' : ''}`}
+                style={{ color: '#14B8A6', fontWeight: 400 }}
+              >
+                {flickerWord}
+              </span>{" "}
+              by your side.
+            </h2>
+            <div className="text-[#A1A1AA] text-lg max-w-2xl mx-auto flex items-center justify-center gap-1.5 flex-wrap">
+              Built for{" "}
+              <span className="relative inline-flex flex-col items-center">
+                {/* Rotating Shooting Star */}
+                <div className="absolute inset-0 -m-4 pointer-events-none animate-[spin_3s_linear_infinite]">
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-white rounded-full shadow-[0_0_10px_#fff,0_0_20px_#14B8A6] animate-pulse"></div>
+                </div>
+
+                <span className="absolute -top-5 text-sm text-[#14B8A6] font-black uppercase tracking-widest leading-none drop-shadow-[0_0_8px_rgba(20,184,166,0.3)]">
+                  CONTEXT
+                </span>
+                <span className="line-through opacity-30 text-xl">Contact</span>
+              </span>{" "}
+              Management
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="p-8 rounded-3xl bg-[#141419] border border-[#2A2A35] hover:border-[#14B8A6]/30 transition-colors">
+              <div className="w-12 h-12 rounded-xl bg-[#14B8A6]/10 flex items-center justify-center mb-6">
+                <svg className="w-6 h-6 text-[#14B8A6]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-medium mb-3">Audio Notes</h3>
+              <p className="text-[#A1A1AA] leading-relaxed">
+                Tap, speak, save. Capture the tone, the exact quote, and the nuance that text simply can&apos;t convey.
+              </p>
+            </div>
+
+            <div className="p-8 rounded-3xl bg-[#141419] border border-[#2A2A35] hover:border-[#14B8A6]/30 transition-colors">
+              <div className="w-12 h-12 rounded-xl bg-[#14B8A6]/10 flex items-center justify-center mb-6">
+                <svg className="w-6 h-6 text-[#14B8A6]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-medium mb-3">Total Privacy</h3>
+              <p className="text-[#A1A1AA] leading-relaxed">
+                Your notes are encrypted before they ever leave your device. Row Level Security ensures your data is only yours.
+              </p>
+            </div>
+
+            <div className="p-8 rounded-3xl bg-[#141419] border border-[#2A2A35] hover:border-[#14B8A6]/30 transition-colors">
+              <div className="w-12 h-12 rounded-xl bg-[#14B8A6]/10 flex items-center justify-center mb-6">
+                <svg className="w-6 h-6 text-[#14B8A6]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-medium mb-3">Offline-First</h3>
+              <p className="text-[#A1A1AA] leading-relaxed">
+                No signal? No problem. Every feature works perfectly offline and silently syncs when you&apos;re back online.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Why Us - Comparison Section */}
+      <section id="why-us" className="relative py-24 px-6 border-t border-[#1C1C24] bg-transparent backdrop-blur-[2px] z-10">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-5xl font-light mb-6">
+              Why choose TieLog?
+            </h2>
+            <p className="text-[#A1A1AA] text-lg max-w-2xl mx-auto">
+              See how we stack up against the competition. No bloated features—just what you need.
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => loadClusters()}
-              className="p-2 text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
-              aria-label="Refresh"
-              title="Refresh clusters"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-            </button>
-            <Link
-              href="/search"
-              className="p-2 text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
-              aria-label="Search"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </Link>
-            <button
-              onClick={async () => {
-                const { signOut } = await import('@/lib/auth');
-                await signOut();
-              }}
-              className="px-3 py-1.5 text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
-            >
-              Sign out
-            </button>
-          </div>
-        </header>
 
-        <section>
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-zinc-800 dark:text-zinc-200">
-              Clusters
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-[#2A2A35]">
+                  <th className="py-4 px-4 text-[#A1A1AA] font-medium">Feature</th>
+                  <th className="py-4 px-4 text-[#14B8A6] font-semibold text-center bg-[#14B8A6]/5 rounded-t-lg">TieLog</th>
+                  <th className="py-4 px-4 text-[#A1A1AA] font-medium text-center">Notion</th>
+                  <th className="py-4 px-4 text-[#A1A1AA] font-medium text-center">Obsidian</th>
+                  <th className="py-4 px-4 text-[#A1A1AA] font-medium text-center">Day One</th>
+                  <th className="py-4 px-4 text-[#A1A1AA] font-medium text-center">Evernote</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b border-[#2A2A35]/50 hover:bg-[#1C1C24]/30 transition-colors">
+                  <td className="py-4 px-4 text-[#F4F4F5] font-medium">Offline Mode</td>
+                  <td className="py-4 px-4 text-center"><span className="inline-flex items-center gap-1.5 text-[#14B8A6] font-medium"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>100%</span></td>
+                  <td className="py-4 px-4 text-center text-[#71717A]">—</td>
+                  <td className="py-4 px-4 text-center"><span className="inline-flex items-center gap-1.5 text-[#14B8A6]"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg></span></td>
+                  <td className="py-4 px-4 text-center"><span className="inline-flex items-center gap-1.5 text-[#14B8A6]"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg></span></td>
+                  <td className="py-4 px-4 text-center text-[#A1A1AA] text-sm">Limited</td>
+                </tr>
+                <tr className="border-b border-[#2A2A35]/50 hover:bg-[#1C1C24]/30 transition-colors">
+                  <td className="py-4 px-4 text-[#F4F4F5] font-medium">E2E Encryption</td>
+                  <td className="py-4 px-4 text-center"><span className="inline-flex items-center gap-1.5 text-[#14B8A6] font-medium"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>Built-in</span></td>
+                  <td className="py-4 px-4 text-center text-[#71717A]">—</td>
+                  <td className="py-4 px-4 text-center text-[#A1A1AA] text-sm">Plugin</td>
+                  <td className="py-4 px-4 text-center text-[#A1A1AA] text-sm">Paid</td>
+                  <td className="py-4 px-4 text-center text-[#71717A]">—</td>
+                </tr>
+                <tr className="border-b border-[#2A2A35]/50 hover:bg-[#1C1C24]/30 transition-colors">
+                  <td className="py-4 px-4 text-[#F4F4F5] font-medium">Audio Recording</td>
+                  <td className="py-4 px-4 text-center"><span className="inline-flex items-center gap-1.5 text-[#14B8A6] font-medium"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>Built-in</span></td>
+                  <td className="py-4 px-4 text-center text-[#71717A]">—</td>
+                  <td className="py-4 px-4 text-center text-[#71717A]">—</td>
+                  <td className="py-4 px-4 text-center"><span className="inline-flex items-center gap-1.5 text-[#14B8A6]"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg></span></td>
+                  <td className="py-4 px-4 text-center text-[#A1A1AA] text-sm">Premium</td>
+                </tr>
+                <tr className="border-b border-[#2A2A35]/50 hover:bg-[#1C1C24]/30 transition-colors">
+                  <td className="py-4 px-4 text-[#F4F4F5] font-medium">People/CRM</td>
+                  <td className="py-4 px-4 text-center"><span className="inline-flex items-center gap-1.5 text-[#14B8A6] font-medium"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>Hierarchy</span></td>
+                  <td className="py-4 px-4 text-center text-[#71717A]">—</td>
+                  <td className="py-4 px-4 text-center text-[#71717A]">—</td>
+                  <td className="py-4 px-4 text-center text-[#71717A]">—</td>
+                  <td className="py-4 px-4 text-center text-[#71717A]">—</td>
+                </tr>
+                <tr className="border-b border-[#2A2A35]/50 hover:bg-[#1C1C24]/30 transition-colors">
+                  <td className="py-4 px-4 text-[#F4F4F5] font-medium">Pre-built Structure</td>
+                  <td className="py-4 px-4 text-center"><span className="inline-flex items-center gap-1.5 text-[#14B8A6] font-medium"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg></span></td>
+                  <td className="py-4 px-4 text-center text-[#71717A]">—</td>
+                  <td className="py-4 px-4 text-center text-[#71717A]">—</td>
+                  <td className="py-4 px-4 text-center text-[#71717A]">—</td>
+                  <td className="py-4 px-4 text-center text-[#71717A]">—</td>
+                </tr>
+
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mt-12 grid md:grid-cols-3 gap-6">
+            <div className="p-6 rounded-2xl bg-[#141419] border border-[#2A2A35]">
+              <h3 className="text-lg font-semibold text-[#F4F4F5] mb-3">⚡ Lightning Fast</h3>
+              <p className="text-[#A1A1AA] text-sm">From open to note saved in under 10 seconds.</p>
+            </div>
+            <div className="p-6 rounded-2xl bg-[#141419] border border-[#2A2A35]">
+              <h3 className="text-lg font-semibold text-[#F4F4F5] mb-3">🔒 Zero-Knowledge Privacy</h3>
+              <p className="text-[#A1A1AA] text-sm">Client-side E2E encryption.</p>
+            </div>
+            <div className="p-6 rounded-2xl bg-[#141419] border border-[#2A2A35]">
+              <h3 className="text-lg font-semibold text-[#F4F4F5] mb-3">👥 People-First Design</h3>
+              <p className="text-[#A1A1AA] text-sm">Built-in hierarchy Cluster → Org → Person</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing Section */}
+      <section id="pricing" className="relative py-24 px-6 bg-transparent z-10">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-5xl font-light text-[#F4F4F5] mb-6">
+              Choose your path
             </h2>
-            <button
-              onClick={() => setShowForm(!showForm)}
-              className="px-4 py-2 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-lg font-medium hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors"
-            >
-              {showForm ? 'Cancel' : 'New Cluster'}
-            </button>
+            <p className="text-lg text-[#A1A1AA] max-w-xl mx-auto">
+              Start for free, upgrade when your network grows.
+            </p>
           </div>
 
-          {showForm && (
-            <form onSubmit={handleCreateCluster} className="mb-8 p-5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl">
-              <div className="space-y-4">
-                <div>
-                  <input
-                    type="text"
-                    value={newClusterName}
-                    onChange={(e) => setNewClusterName(e.target.value)}
-                    placeholder="Cluster name (e.g., South Asia Trip)"
-                    className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:border-zinc-400"
-                    autoFocus
-                  />
-                </div>
-                <div>
-                  <textarea
-                    value={newClusterDesc}
-                    onChange={(e) => setNewClusterDesc(e.target.value)}
-                    placeholder="Description (optional)"
-                    rows={2}
-                    className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:border-zinc-400 resize-none"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={!newClusterName.trim()}
-                  className="w-full py-3 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-medium rounded-lg hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors disabled:opacity-50"
-                >
-                  Create Cluster
-                </button>
+          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            {/* Starter */}
+            <div className="bg-[#141419] border border-[#2A2A35] rounded-3xl p-8 hover:border-[#14B8A6]/30 transition-all flex flex-col">
+              <h3 className="text-xl font-semibold text-[#F4F4F5] mb-2">Starter</h3>
+              <div className="flex items-baseline gap-1 mb-4">
+                <span className="text-5xl font-light tracking-tight text-[#F4F4F5]">$0</span>
+                <span className="text-[#71717A]">/mo</span>
               </div>
-            </form>
-          )}
+              <p className="text-[#A1A1AA] mb-8 text-sm">Perfect to explore and capture your first thoughts.</p>
 
-          {isLoading ? (
-            <div className="text-center py-12 text-zinc-400">
-              Loading clusters...
+              <ul className="space-y-4 mb-8 flex-1">
+                <li className="flex items-center gap-3 text-sm text-[#D4D4D8]">
+                  <span className="text-[#14B8A6]">✓</span> Unlimited clusters & notes
+                </li>
+                <li className="flex items-center gap-3 text-sm text-[#D4D4D8]">
+                  <span className="text-[#14B8A6]">✓</span> Core Audio notes
+                </li>
+                <li className="flex items-center gap-3 text-sm text-[#D4D4D8]">
+                  <span className="text-[#14B8A6]">✓</span> Offline-first sync
+                </li>
+              </ul>
+              <a href="/auth/signup" className="block w-full py-3.5 text-center border border-[#2A2A35] text-[#F4F4F5] rounded-full font-medium hover:bg-[#1C1C24] transition-colors">
+                Start for Free
+              </a>
             </div>
-          ) : clusters.length === 0 ? (
-            <div className="text-center py-12 border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl">
-              <p className="text-zinc-400 dark:text-zinc-500 mb-4">
-                No clusters yet. Create your first one!
-              </p>
-              <button
-                onClick={() => setShowForm(true)}
-                className="px-4 py-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
-              >
-                Create Cluster
-              </button>
+
+            {/* Pro */}
+            <div className="bg-[#1C1C24] border border-[#14B8A6]/40 rounded-3xl p-8 relative transform md:-translate-y-4 shadow-[0_0_40px_rgba(20,184,166,0.1)] flex flex-col">
+              <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#14B8A6] text-[#0A0A0F] text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-widest">
+                Popular
+              </div>
+              <h3 className="text-xl font-semibold text-[#F4F4F5] mb-2">Pro</h3>
+              <div className="flex items-baseline gap-1 mb-4">
+                <span className="text-5xl font-light tracking-tight text-[#14B8A6]">$5</span>
+                <span className="text-[#71717A]">/mo</span>
+              </div>
+              <p className="text-[#A1A1AA] mb-8 text-sm">Advanced features for power networkers.</p>
+
+              <ul className="space-y-4 mb-8 flex-1">
+                <li className="flex items-center gap-3 text-sm text-[#D4D4D8]">
+                  <span className="text-[#14B8A6]">✓</span> Everything in Starter
+                </li>
+                <li className="flex items-center gap-3 text-sm text-[#D4D4D8]">
+                  <span className="text-[#14B8A6]">✓</span> Secure Cloud backup
+                </li>
+                <li className="flex items-center gap-3 text-sm text-[#D4D4D8]">
+                  <span className="text-[#14B8A6]">✓</span> Priority sync queues
+                </li>
+                <li className="flex items-center gap-3 text-sm text-[#D4D4D8]">
+                  <span className="text-[#14B8A6]">✓</span> Export & Data ownership
+                </li>
+              </ul>
+              <a href="/auth/signup" className="block w-full py-3.5 text-center bg-[#F4F4F5] text-[#0A0A0F] rounded-full font-semibold hover:bg-white transition-colors shadow-[0_0_15px_rgba(255,255,255,0.2)]">
+                Upgrade to Pro
+              </a>
             </div>
-          ) : (
-            <div className="grid gap-4 sm:grid-cols-2">
-              {clusters.map((cluster) => (
-                <ClusterCard
-                  key={cluster.id}
-                  cluster={cluster}
-                  onDelete={deleteCluster}
-                />
-              ))}
+
+            {/* Lifetime */}
+            <div className="bg-[#141419] border border-[#2A2A35] rounded-3xl p-8 hover:border-[#14B8A6]/30 transition-all flex flex-col">
+              <h3 className="text-xl font-semibold text-[#F4F4F5] mb-2">Lifetime</h3>
+              <div className="flex items-baseline gap-1 mb-4">
+                <span className="text-4xl font-light tracking-tight text-[#F4F4F5]">Custom</span>
+              </div>
+              <p className="text-[#A1A1AA] mb-8 text-sm">For teams and long-term commitments.</p>
+
+              <ul className="space-y-4 mb-8 flex-1">
+                <li className="flex items-center gap-3 text-sm text-[#D4D4D8]">
+                  <span className="text-[#14B8A6]">✓</span> Everything in Pro
+                </li>
+                <li className="flex items-center gap-3 text-sm text-[#D4D4D8]">
+                  <span className="text-[#14B8A6]">✓</span> One-time payment
+                </li>
+                <li className="flex items-center gap-3 text-sm text-[#D4D4D8]">
+                  <span className="text-[#14B8A6]">✓</span> Dedicated workspace
+                </li>
+                <li className="flex items-center gap-3 text-sm text-[#D4D4D8]">
+                  <span className="text-[#14B8A6]">✓</span> Premium SLA support
+                </li>
+              </ul>
+              <a href="mailto:support@tielog.app" className="block w-full py-3.5 text-center border border-[#2A2A35] text-[#F4F4F5] rounded-full font-medium hover:bg-[#1C1C24] transition-colors">
+                Contact Sales
+              </a>
             </div>
-          )}
-        </section>
-      </div>
-    </main>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="relative py-10 px-6 border-t border-[#2A2A35] z-10 bg-[#0A0A0F]/90">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-md bg-[#14B8A6] flex items-center justify-center">
+              <svg className="w-4 h-4 text-[#0A0A0F]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+            </div>
+            <span className="text-[#71717A]">TieLog</span>
+          </div>
+          <p className="text-[#71717A] text-sm">
+            Your memories. Your notes. Your business.
+          </p>
+        </div>
+      </footer>
+    </div>
   );
 }

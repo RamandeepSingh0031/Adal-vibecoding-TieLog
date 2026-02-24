@@ -3,29 +3,47 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-// Custom storage to avoid lock issues
+// Custom storage to avoid lock issues - use sessionStorage as fallback
 const customStorage = {
-  getItem: (key: string) => {
+  getItem: (key: string): string | null => {
     if (typeof window === 'undefined') return null;
-    return window.localStorage.getItem(key);
+    try {
+      return sessionStorage.getItem(key);
+    } catch {
+      return null;
+    }
   },
-  setItem: (key: string, value: string) => {
+  setItem: (key: string, value: string): void => {
     if (typeof window === 'undefined') return;
-    window.localStorage.setItem(key, value);
+    try {
+      sessionStorage.setItem(key, value);
+    } catch {
+      // Ignore storage errors
+    }
   },
-  removeItem: (key: string) => {
+  removeItem: (key: string): void => {
     if (typeof window === 'undefined') return;
-    window.localStorage.removeItem(key);
+    try {
+      sessionStorage.removeItem(key);
+    } catch {
+      // Ignore storage errors
+    }
   },
 };
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: customStorage,
-    autoRefreshToken: false,
-    persistSession: false,
-    detectSessionInUrl: false,
-  }
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
+    flowType: 'pkce',
+  },
+  global: {
+    headers: {
+      'x-client-info': 'tielog',
+    },
+  },
 });
 
 export type Database = {

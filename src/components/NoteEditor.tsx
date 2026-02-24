@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -29,6 +29,15 @@ export function NoteEditor({ clusterId, people, organizations, selectedOrgId, on
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
+  // Revoke object URLs on change and unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (audioUrl) {
+        URL.revokeObjectURL(audioUrl);
+      }
+    };
+  }, [audioUrl]);
+
   const { register, handleSubmit, reset, setValue, watch, formState: { errors, isSubmitting } } = useForm<NoteFormData>({
     resolver: zodResolver(noteSchema),
     defaultValues: {
@@ -49,7 +58,7 @@ export function NoteEditor({ clusterId, people, organizations, selectedOrgId, on
   }, [selectedOrgId, setValue]);
 
   // Filter people based on selected organization
-  const filteredPeople = selectedOrganization 
+  const filteredPeople = selectedOrganization
     ? people.filter(p => p.organization_id === selectedOrganization)
     : [];
 
@@ -73,7 +82,7 @@ export function NoteEditor({ clusterId, people, organizations, selectedOrgId, on
     setAudioUrl(null);
   };
 
-  const startRecording = async () => {
+  const startRecording = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream);
@@ -90,22 +99,23 @@ export function NoteEditor({ clusterId, people, organizations, selectedOrgId, on
         const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
         const url = URL.createObjectURL(blob);
         setAudioUrl(url);
-        stream.getTracks().forEach(track => track.stop());
+        stream.getTracks().forEach((track) => track.stop());
       };
 
       mediaRecorder.start();
       setIsRecording(true);
     } catch (err) {
-      console.error('Failed to start recording:', err);
+      // Log recording errors without crashing the UI
+      console.warn('Failed to start recording:', err);
     }
-  };
+  }, []);
 
-  const stopRecording = () => {
+  const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
     }
-  };
+  }, [isRecording]);
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -113,7 +123,7 @@ export function NoteEditor({ clusterId, people, organizations, selectedOrgId, on
         <textarea
           {...register('content')}
           placeholder="Write your note... Use @name for people, #org for organizations"
-          className="w-full min-h-[120px] p-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl resize-none focus:outline-none focus:border-zinc-400 dark:focus:border-zinc-600 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400"
+          className="w-full min-h-[120px] p-4 bg-[#141419] border border-[#2A2A35] rounded-xl resize-none focus:outline-none focus:border-[#14B8A6] text-gray-200 placeholder-gray-500"
           aria-label="Note content"
         />
         {errors.content && (
@@ -129,7 +139,7 @@ export function NoteEditor({ clusterId, people, organizations, selectedOrgId, on
             setValue('organization_id', e.target.value);
             setValue('person_id', ''); // Reset person when org changes
           }}
-          className="px-3 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm text-zinc-700 dark:text-zinc-300 focus:outline-none focus:border-zinc-400"
+          className="px-3 py-2 bg-[#141419] border border-[#2A2A35] rounded-lg text-sm text-gray-300 focus:outline-none focus:border-[#14B8A6]"
         >
           <option value="">Select organization</option>
           {organizations.map((org) => (
@@ -142,7 +152,7 @@ export function NoteEditor({ clusterId, people, organizations, selectedOrgId, on
         <select
           {...register('person_id')}
           value={watch('person_id') || ''}
-          className="px-3 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm text-zinc-700 dark:text-zinc-300 focus:outline-none focus:border-zinc-400"
+          className="px-3 py-2 bg-[#141419] border border-[#2A2A35] rounded-lg text-sm text-gray-300 focus:outline-none focus:border-[#14B8A6]"
         >
           <option value="">Select person</option>
           {filteredPeople.map((person) => (
@@ -155,18 +165,17 @@ export function NoteEditor({ clusterId, people, organizations, selectedOrgId, on
         <button
           type="button"
           onClick={isRecording ? stopRecording : startRecording}
-          className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-            isRecording
-              ? 'bg-red-500 text-white hover:bg-red-600'
-              : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700'
-          }`}
+          className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isRecording
+            ? 'bg-red-500 text-white hover:bg-red-600'
+            : 'bg-[#1C1C24] text-gray-300 hover:bg-[#2A2A35]'
+            }`}
         >
           {isRecording ? 'Stop Recording' : '🎤 Record Audio'}
         </button>
       </div>
 
       {audioUrl && (
-        <div className="flex items-center gap-3 p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg">
+        <div className="flex items-center gap-3 p-3 bg-[#1C1C24] rounded-lg">
           <audio src={audioUrl} controls className="flex-1" />
           <button
             type="button"
@@ -183,7 +192,7 @@ export function NoteEditor({ clusterId, people, organizations, selectedOrgId, on
       <button
         type="submit"
         disabled={isSubmitting}
-        className="w-full py-3 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-medium rounded-xl hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors disabled:opacity-50"
+        className="w-full py-3 bg-[#14B8A6] text-[#0A0A0F] font-medium rounded-xl hover:bg-[#0D9488] transition-colors disabled:opacity-50"
       >
         {isSubmitting ? 'Saving...' : 'Save Note'}
       </button>

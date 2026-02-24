@@ -13,17 +13,17 @@ export function ClusterCard({ cluster, onDelete }: ClusterCardProps) {
   const [showDelete, setShowDelete] = useState(false);
 
   return (
-    <div className="group relative bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 transition-all duration-200 hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-lg">
+    <div className="group relative bg-[#141419] border border-[#2A2A35] rounded-xl p-5 transition-all duration-200 hover:border-[#14B8A6] hover:shadow-lg">
       <Link href={`/cluster/${cluster.id}`} className="block">
-        <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">
+        <h3 className="text-lg font-semibold text-gray-100 mb-1">
           {cluster.name}
         </h3>
         {cluster.description && (
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 line-clamp-2">
+          <p className="text-sm text-gray-400 line-clamp-2">
             {cluster.description}
           </p>
         )}
-        <time className="text-xs text-zinc-400 dark:text-zinc-500 mt-3 block">
+        <time className="text-xs text-gray-500 mt-3 block">
           {new Date(cluster.created_at).toLocaleDateString('en-US', {
             month: 'short',
             day: 'numeric',
@@ -31,7 +31,7 @@ export function ClusterCard({ cluster, onDelete }: ClusterCardProps) {
           })}
         </time>
       </Link>
-      
+
       <button
         onClick={(e) => {
           e.preventDefault();
@@ -46,8 +46,8 @@ export function ClusterCard({ cluster, onDelete }: ClusterCardProps) {
       </button>
 
       {showDelete && (
-        <div className="absolute top-12 right-4 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg p-3 z-10">
-          <p className="text-sm text-zinc-600 dark:text-zinc-300 mb-2">Delete this cluster?</p>
+        <div className="absolute top-12 right-4 bg-[#1C1C24] border border-[#2A2A35] rounded-lg shadow-lg p-3 z-10">
+          <p className="text-sm text-gray-300 mb-2">Delete this cluster?</p>
           <div className="flex gap-2">
             <button
               onClick={() => onDelete(cluster.id)}
@@ -57,7 +57,7 @@ export function ClusterCard({ cluster, onDelete }: ClusterCardProps) {
             </button>
             <button
               onClick={() => setShowDelete(false)}
-              className="px-3 py-1 text-xs bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300 rounded hover:bg-zinc-200 dark:hover:bg-zinc-600"
+              className="px-3 py-1 text-xs bg-[#2A2A35] text-gray-300 rounded hover:bg-[#3A3A45]"
             >
               Cancel
             </button>

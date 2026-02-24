@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { User } from '@supabase/supabase-js';
+import { User, Session } from '@supabase/supabase-js';
 
 export type OAuthProvider = 'github' | 'google' | 'apple';
 
@@ -38,7 +38,7 @@ export const getUser = async (): Promise<User | null> => {
   return user;
 };
 
-export const onAuthStateChange = (callback: (event: string, session: any) => void) => {
+export const onAuthStateChange = (callback: (event: string, session: Session | null) => void) => {
   return supabase.auth.onAuthStateChange(callback);
 };
 

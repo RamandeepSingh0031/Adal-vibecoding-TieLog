@@ -39,6 +39,8 @@ interface AppState {
   clearUserData: () => void;
 }
 
+type ClusterRecord = Cluster & Record<string, unknown>;
+
 export const useAppStore = create<AppState>((set, get) => ({
   user: null,
   userId: null,
@@ -67,21 +69,21 @@ export const useAppStore = create<AppState>((set, get) => ({
   loadClusters: async () => {
     const { userId } = get();
     set({ isLoading: true });
-    
+
     try {
       // Load all clusters and filter in JS (handles old data without user_id)
       const allClusters = await db.clusters
         .orderBy('created_at')
         .reverse()
         .toArray();
-      
+
       console.log('Loading clusters:', { total: allClusters.length, userId });
-      
+
       // Filter by userId if available, otherwise show all (for migrated data)
-      const clusters = userId 
+      const clusters = userId
         ? allClusters.filter(c => c.user_id === userId || !c.user_id)
         : allClusters;
-      
+
       console.log('Filtered clusters:', clusters.length);
       set({ clusters, isLoading: false });
     } catch (err) {
@@ -104,7 +106,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       synced: false,
     };
     await db.clusters.add(cluster);
-    await addToSyncQueue('clusters', 'create', cluster, userId);
+    await addToSyncQueue('clusters', 'create', cluster as ClusterRecord, userId);
     set((state) => ({ clusters: [cluster, ...state.clusters] }));
     // Trigger sync to Supabase
     syncToSupabase(userId).catch(console.error);

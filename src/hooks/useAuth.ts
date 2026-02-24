@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { useAppStore } from '@/store/appStore';
 import { db } from '@/lib/db';
+import { fetchFromSupabase } from '@/lib/sync';
 import type { User } from '@supabase/supabase-js';
 
 export function useAuth() {
@@ -19,7 +20,7 @@ export function useAuth() {
     const initAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        
+
         if (!session) {
           const path = window.location.pathname;
           if (path !== '/auth/signin' && path !== '/auth/signup') {
@@ -33,9 +34,9 @@ export function useAuth() {
 
         if (session.user) {
           setUserId(session.user.id);
-          
+
           let profile = await db.profiles.get(session.user.id);
-          
+
           if (!profile) {
             profile = {
               id: session.user.id,
@@ -47,13 +48,13 @@ export function useAuth() {
             };
             await db.profiles.put(profile);
           }
-          
+
           setStoreUser(profile);
         }
 
         const path = window.location.pathname;
         if (path === '/auth/signin' || path === '/auth/signup') {
-          router.push('/');
+          router.push('/dashboard');
         }
       } catch (error) {
         console.error('Auth init error:', error);
@@ -74,6 +75,12 @@ export function useAuth() {
         setUser(session.user);
         if (session.user) {
           setUserId(session.user.id);
+          // Fetch data in background without blocking redirect
+          fetchFromSupabase(session.user.id).catch(err => console.error('Fetch error:', err));
+        }
+        const path = window.location.pathname;
+        if (path === '/auth/signin' || path === '/auth/signup') {
+          router.push('/dashboard');
         }
       }
     });
@@ -84,10 +91,5 @@ export function useAuth() {
     };
   }, [router, setStoreUser, setUserId]);
 
-  return { user, isLoading };
-}
-
-export function requireAuth() {
-  const { user, isLoading } = useAuth();
   return { user, isLoading };
 }
