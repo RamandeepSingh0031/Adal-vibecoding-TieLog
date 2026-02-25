@@ -11,12 +11,6 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "TieLog - Your Personal Relationship Journal",
   description: "A private, offline-first journal for capturing notes about people.",
-  manifest: "/manifest.json",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: "TieLog",
-  },
 };
 
 export default function RootLayout({

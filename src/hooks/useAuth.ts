@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { useAppStore } from '@/store/appStore';
 import { db } from '@/lib/db';
-import { fetchFromSupabase } from '@/lib/sync';
+import { fetchFromSupabase, syncToSupabase, setupOnlineListener } from '@/lib/sync';
 import type { User } from '@supabase/supabase-js';
 
 export function useAuth() {
@@ -87,6 +87,18 @@ export function useAuth() {
 
     initAuth();
 
+    // Sync pending changes when coming back online
+    const cleanupOnlineListener = setupOnlineListener(
+      async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          console.log('Back online - syncing to Supabase');
+          syncToSupabase(session.user.id).catch(err => console.error('Sync error:', err));
+        }
+      },
+      () => console.log('Went offline')
+    );
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_OUT') {
         setUser(null);
@@ -110,6 +122,7 @@ export function useAuth() {
     return () => {
       mounted = false;
       subscription.unsubscribe();
+      cleanupOnlineListener?.();
     };
   }, [router, setStoreUser, setUserId]);
 

@@ -3,7 +3,7 @@ import Stripe from 'stripe';
 import { PrismaClient } from '@prisma/client';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: '2024-12-18.acacia',
+    apiVersion: '2026-01-28.clover',
 });
 
 const prisma = new PrismaClient();
@@ -60,18 +60,22 @@ export async function POST(req: Request) {
                 });
 
                 if (profile) {
-                    const status = subscription.status === 'active' ? 'active' 
+                    const status = subscription.status === 'active' ? 'active'
                         : subscription.status === 'past_due' ? 'past_due'
                         : subscription.status === 'canceled' ? 'canceled'
                         : subscription.status === 'trialing' ? 'trialing'
                         : subscription.status;
 
+                    // Access current_period_end safely - may differ across Stripe API versions
+                    const periodEnd = (subscription as any).current_period_end
+                        ?? (subscription as any).items?.data?.[0]?.current_period_end;
+
                     await prisma.profile.update({
                         where: { id: profile.id },
                         data: {
                             subscriptionStatus: status,
-                            subscriptionEndDate: subscription.current_period_end 
-                                ? new Date(subscription.current_period_end * 1000) 
+                            subscriptionEndDate: periodEnd
+                                ? new Date(periodEnd * 1000)
                                 : null,
                         },
                     });
