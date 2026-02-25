@@ -23,7 +23,9 @@ export function useAuth() {
 
         if (!session) {
           const path = window.location.pathname;
-          if (path !== '/auth/signin' && path !== '/auth/signup') {
+          // Only redirect to signin on protected routes
+          const isProtectedRoute = path.startsWith('/dashboard') || path.startsWith('/settings') || path.startsWith('/search') || path.startsWith('/cluster');
+          if (isProtectedRoute) {
             router.push('/auth/signin');
           }
           setIsLoading(false);
