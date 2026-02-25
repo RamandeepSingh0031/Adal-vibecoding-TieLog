@@ -4,9 +4,10 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAppStore } from '@/store/appStore';
 import { db, type Cluster } from '@/lib/db';
+import { ClusterCard } from '@/components/ClusterCard';
 
 export default function DashboardPage() {
-  const { userId, addCluster } = useAppStore();
+  const { userId, addCluster, updateCluster, deleteCluster } = useAppStore();
   const [clusters, setClusters] = useState<Cluster[]>([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newClusterName, setNewClusterName] = useState('');
@@ -97,49 +98,12 @@ export default function DashboardPage() {
         ) : clusters.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {clusters.map((cluster) => (
-              <Link
+              <ClusterCard
                 key={cluster.id}
-                href={`/cluster/${cluster.id}`}
-                className="group relative p-8 bg-[#2D2D2D]/80 border border-[#4A4A4A] rounded-[32px] hover:border-[#14B8A6]/40 transition-all duration-500 hover:bg-[#2D2D2D] hover:-translate-y-1 block overflow-hidden shadow-lg hover:shadow-2xl"
-              >
-                {/* Subtle Decorative Background */}
-                <div className="absolute top-0 right-0 w-32 h-32 bg-[#14B8A6]/5 blur-[60px] rounded-full -mr-16 -mt-16 group-hover:bg-[#14B8A6]/10 transition-colors"></div>
-
-                <div className="relative z-10">
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="w-12 h-12 rounded-2xl bg-[#14B8A6]/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
-                      <svg className="w-6 h-6 text-[#14B8A6]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.123-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                    </div>
-                    <div className="p-2 rounded-full border border-[#3E3E3E] group-hover:border-[#14B8A6]/30 transition-colors">
-                      <svg className="w-4 h-4 text-[#71717A] group-hover:text-[#14B8A6] transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </div>
-                  </div>
-
-                  <h3 className="text-xl font-semibold text-[#F4F4F5] mb-2 group-hover:text-[#14B8A6] transition-colors leading-tight">
-                    {cluster.name}
-                  </h3>
-
-                  {cluster.description ? (
-                    <p className="text-sm text-[#A1A1AA] line-clamp-2 leading-relaxed h-[2.8rem]">
-                      {cluster.description}
-                    </p>
-                  ) : (
-                    <p className="text-sm text-[#52525B] italic leading-relaxed h-[2.8rem]">
-                      No description provided
-                    </p>
-                  )}
-
-                  <div className="mt-6 flex items-center justify-between">
-                    <span className="text-xs font-medium text-[#52525B] tracking-wider uppercase">
-                      {new Date(cluster.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                    </span>
-                  </div>
-                </div>
-              </Link>
+                cluster={cluster}
+                onDelete={deleteCluster}
+                onEdit={updateCluster}
+              />
             ))}
           </div>
         ) : (

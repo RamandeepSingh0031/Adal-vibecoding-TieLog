@@ -24,10 +24,12 @@ interface AppState {
 
   loadOrganizations: (clusterId: string) => Promise<void>;
   addOrganization: (clusterId: string, name: string) => Promise<Organization>;
+  updateOrganization: (id: string, data: Partial<Organization>) => Promise<void>;
   deleteOrganization: (id: string) => Promise<void>;
 
   loadPeople: (organizationId: string) => Promise<void>;
   addPerson: (organizationId: string, name: string, role?: string) => Promise<Person>;
+  updatePerson: (id: string, data: Partial<Person>) => Promise<void>;
   deletePerson: (id: string) => Promise<void>;
 
   loadNotes: (clusterId?: string) => Promise<void>;
@@ -161,6 +163,17 @@ export const useAppStore = create<AppState>((set, get) => ({
     return org;
   },
 
+  updateOrganization: async (id, data) => {
+    const { userId } = get();
+    if (!userId) return;
+    await db.organizations.update(id, { ...data, synced: false });
+    await addToSyncQueue('organizations', 'update', { id, ...data }, userId);
+    set((state) => ({
+      organizations: state.organizations.map((o) => (o.id === id ? { ...o, ...data } : o)),
+    }));
+    syncToSupabase(userId).catch(console.error);
+  },
+
   deleteOrganization: async (id) => {
     const { userId } = get();
     if (!userId) return;
@@ -195,6 +208,17 @@ export const useAppStore = create<AppState>((set, get) => ({
     set((state) => ({ people: [...state.people, person] }));
     syncToSupabase(userId).catch(console.error);
     return person;
+  },
+
+  updatePerson: async (id, data) => {
+    const { userId } = get();
+    if (!userId) return;
+    await db.people.update(id, { ...data, synced: false });
+    await addToSyncQueue('people', 'update', { id, ...data }, userId);
+    set((state) => ({
+      people: state.people.map((p) => (p.id === id ? { ...p, ...data } : p)),
+    }));
+    syncToSupabase(userId).catch(console.error);
   },
 
   deletePerson: async (id) => {

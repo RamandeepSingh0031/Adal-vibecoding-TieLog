@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY || '';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 // Custom storage to avoid lock issues - use sessionStorage as fallback
 const customStorage = {
@@ -50,24 +50,71 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 export type Database = {
   public: {
     Tables: {
-      clusters: {
+      profiles: {
         Row: {
           id: string;
-          name: string;
-          description: string | null;
+          email: string;
+          full_name: string | null;
+          avatar_url: string | null;
+          plan: string;
+          stripe_customer_id: string | null;
+          stripe_subscription_id: string | null;
+          subscription_status: string | null;
+          subscription_start_date: string | null;
+          subscription_end_date: string | null;
           created_at: string;
         };
         Insert: {
-          id?: string;
-          name: string;
-          description?: string | null;
+          id: string;
+          email: string;
+          full_name?: string | null;
+          avatar_url?: string | null;
+          plan?: string;
+          stripe_customer_id?: string | null;
+          stripe_subscription_id?: string | null;
+          subscription_status?: string | null;
+          subscription_start_date?: string | null;
+          subscription_end_date?: string | null;
           created_at?: string;
         };
         Update: {
           id?: string;
+          email?: string;
+          full_name?: string | null;
+          avatar_url?: string | null;
+          plan?: string;
+          stripe_customer_id?: string | null;
+          stripe_subscription_id?: string | null;
+          subscription_status?: string | null;
+          subscription_start_date?: string | null;
+          subscription_end_date?: string | null;
+          created_at?: string;
+        };
+      };
+      clusters: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          description: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          description?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
           name?: string;
           description?: string | null;
           created_at?: string;
+          updated_at?: string;
         };
       };
       organizations: {

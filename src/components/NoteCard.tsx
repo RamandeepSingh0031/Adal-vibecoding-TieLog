@@ -6,10 +6,14 @@ import { type Note, type Organization, type Person, db } from '@/lib/db';
 interface NoteCardProps {
   note: Note;
   onDelete: (id: string) => void;
+  onEdit: (id: string, data: { content: string; tags: string[] | null }) => void;
 }
 
-export function NoteCard({ note, onDelete }: NoteCardProps) {
+export function NoteCard({ note, onDelete, onEdit }: NoteCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState(note.content);
+  const [editTags, setEditTags] = useState(note.tags?.join(', ') || '');
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [person, setPerson] = useState<Person | null>(null);
   const hasAudio = !!note.audio_url;
@@ -97,6 +101,18 @@ export function NoteCard({ note, onDelete }: NoteCardProps) {
             <button
               onClick={(e) => {
                 e.stopPropagation();
+                setIsEditing(true);
+              }}
+              className="p-1.5 opacity-0 group-hover:opacity-100 transition-opacity text-zinc-400 hover:text-[#14B8A6]"
+              aria-label="Edit note"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
                 onDelete(note.id);
               }}
               className="p-1.5 opacity-0 group-hover:opacity-100 transition-opacity text-zinc-400 hover:text-red-500"
@@ -109,6 +125,61 @@ export function NoteCard({ note, onDelete }: NoteCardProps) {
           </div>
         </div>
       </article>
+
+      {/* Edit Modal */}
+      {isEditing && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setIsEditing(false)}
+        >
+          <div
+            className="bg-[#2D2D2D] rounded-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto p-6 border border-[#3E3E3E] shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-semibold text-[#F4F4F5] mb-4">Edit Note</h3>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                onEdit(note.id, {
+                  content: editContent,
+                  tags: editTags ? editTags.split(',').map(t => t.trim()).filter(Boolean) : null,
+                });
+                setIsEditing(false);
+              }}
+              className="space-y-4"
+            >
+              <textarea
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                rows={8}
+                className="w-full px-4 py-3 bg-[#1C1C24] border border-[#3E3E3E] rounded-lg text-[#F4F4F5] focus:outline-none focus:border-[#14B8A6] resize-none"
+              />
+              <input
+                type="text"
+                value={editTags}
+                onChange={(e) => setEditTags(e.target.value)}
+                placeholder="Tags (comma separated)"
+                className="w-full px-4 py-2 bg-[#1C1C24] border border-[#3E3E3E] rounded-lg text-[#F4F4F5] placeholder-[#71717A] focus:outline-none focus:border-[#14B8A6]"
+              />
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  className="flex-1 py-2 bg-[#14B8A6] text-[#0A0A0F] rounded-lg font-medium hover:bg-[#2DD4BF]"
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(false)}
+                  className="flex-1 py-2 bg-[#3E3E3E] text-[#F4F4F5] rounded-lg font-medium hover:bg-[#4E4E4E]"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Modal for expanded note view */}
       {isExpanded && (

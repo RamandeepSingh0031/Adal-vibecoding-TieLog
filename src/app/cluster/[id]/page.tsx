@@ -27,6 +27,9 @@ export default function ClusterPage() {
     deleteOrganization,
     deletePerson,
     deleteNote,
+    updateNote,
+    updateOrganization,
+    updatePerson,
   } = useAppStore();
 
   const [showOrgForm, setShowOrgForm] = useState(false);
@@ -35,6 +38,11 @@ export default function ClusterPage() {
   const [newPersonName, setNewPersonName] = useState('');
   const [newPersonRole, setNewPersonRole] = useState('');
   const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null);
+  const [editingOrgId, setEditingOrgId] = useState<string | null>(null);
+  const [editingPersonId, setEditingPersonId] = useState<string | null>(null);
+  const [editOrgName, setEditOrgName] = useState('');
+  const [editPersonName, setEditPersonName] = useState('');
+  const [editPersonRole, setEditPersonRole] = useState('');
 
   const cluster = clusters.find((c) => c.id === clusterId);
 
@@ -65,6 +73,21 @@ export default function ClusterPage() {
     setNewPersonName('');
     setNewPersonRole('');
     setShowPersonForm(false);
+  };
+
+  const handleEditOrg = async (orgId: string) => {
+    if (!editOrgName.trim()) return;
+    await updateOrganization(orgId, { name: editOrgName });
+    setEditingOrgId(null);
+    setEditOrgName('');
+  };
+
+  const handleEditPerson = async (personId: string) => {
+    if (!editPersonName.trim()) return;
+    await updatePerson(personId, { name: editPersonName, role: editPersonRole || null });
+    setEditingPersonId(null);
+    setEditPersonName('');
+    setEditPersonRole('');
   };
 
   const handleAddNote = async (data: {
@@ -151,16 +174,51 @@ export default function ClusterPage() {
               ) : (
                 <ul className="space-y-2">
                   {organizations.map((org) => (
-                    <li key={org.id}>
-                      <button
-                        onClick={() => setSelectedOrgId(org.id)}
-                        className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${selectedOrgId === org.id
-                          ? 'bg-[#14B8A6]/20 text-[#14B8A6] border border-[#14B8A6]/30'
-                          : 'hover:bg-[#2D2D2D] text-[#A1A1AA] hover:text-[#F4F4F5]'
-                          }`}
-                      >
-                        {org.name}
-                      </button>
+                    <li key={org.id} className="flex items-center gap-2">
+                      {editingOrgId === org.id ? (
+                        <form
+                          onSubmit={(e) => { e.preventDefault(); handleEditOrg(org.id); }}
+                          className="flex-1 flex gap-1"
+                        >
+                          <input
+                            type="text"
+                            value={editOrgName}
+                            onChange={(e) => setEditOrgName(e.target.value)}
+                            className="flex-1 px-2 py-1 text-sm bg-[#3E3E3E] border border-[#4A4A4A] rounded text-[#F4F4F5] focus:outline-none focus:border-[#14B8A6]"
+                            autoFocus
+                          />
+                          <button type="submit" className="p-1 text-[#14B8A6] hover:bg-[#14B8A6]/20 rounded">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                          </button>
+                          <button type="button" onClick={() => setEditingOrgId(null)} className="p-1 text-zinc-400 hover:bg-[#3E3E3E] rounded">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                          </button>
+                        </form>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => setSelectedOrgId(org.id)}
+                            className={`flex-1 text-left px-3 py-2 rounded-lg text-sm transition-colors ${selectedOrgId === org.id
+                              ? 'bg-[#14B8A6]/20 text-[#14B8A6] border border-[#14B8A6]/30'
+                              : 'hover:bg-[#2D2D2D] text-[#A1A1AA] hover:text-[#F4F4F5]'
+                              }`}
+                          >
+                            {org.name}
+                          </button>
+                          <button
+                            onClick={() => { setEditingOrgId(org.id); setEditOrgName(org.name); }}
+                            className="p-1 text-zinc-500 hover:text-[#14B8A6]"
+                          >
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                          </button>
+                          <button
+                            onClick={() => deleteOrganization(org.id)}
+                            className="p-1 text-zinc-500 hover:text-red-500"
+                          >
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                          </button>
+                        </>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -212,13 +270,54 @@ export default function ClusterPage() {
                 ) : (
                   <ul className="space-y-1">
                     {people.map((person) => (
-                      <li
-                        key={person.id}
-                        className="px-3 py-2 text-sm text-[#A1A1AA]"
-                      >
-                        {person.name}
-                        {person.role && (
-                          <span className="text-[#71717A] text-xs ml-1">({person.role})</span>
+                      <li key={person.id} className="flex items-center gap-2 px-3 py-2 text-sm text-[#A1A1AA]">
+                        {editingPersonId === person.id ? (
+                          <form
+                            onSubmit={(e) => { e.preventDefault(); handleEditPerson(person.id); }}
+                            className="flex-1 flex gap-1 flex-wrap"
+                          >
+                            <input
+                              type="text"
+                              value={editPersonName}
+                              onChange={(e) => setEditPersonName(e.target.value)}
+                              className="flex-1 min-w-[80px] px-2 py-1 text-sm bg-[#3E3E3E] border border-[#4A4A4A] rounded text-[#F4F4F5] focus:outline-none focus:border-[#14B8A6]"
+                              autoFocus
+                            />
+                            <input
+                              type="text"
+                              value={editPersonRole}
+                              onChange={(e) => setEditPersonRole(e.target.value)}
+                              placeholder="Role"
+                              className="w-20 px-2 py-1 text-sm bg-[#3E3E3E] border border-[#4A4A4A] rounded text-[#F4F4F5] focus:outline-none focus:border-[#14B8A6]"
+                            />
+                            <button type="submit" className="p-1 text-[#14B8A6] hover:bg-[#14B8A6]/20 rounded">
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                            </button>
+                            <button type="button" onClick={() => setEditingPersonId(null)} className="p-1 text-zinc-400 hover:bg-[#3E3E3E] rounded">
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                          </form>
+                        ) : (
+                          <>
+                            <span className="flex-1">
+                              {person.name}
+                              {person.role && (
+                                <span className="text-[#71717A] text-xs ml-1">({person.role})</span>
+                              )}
+                            </span>
+                            <button
+                              onClick={() => { setEditingPersonId(person.id); setEditPersonName(person.name); setEditPersonRole(person.role || ''); }}
+                              className="p-1 text-zinc-500 hover:text-[#14B8A6]"
+                            >
+                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                            </button>
+                            <button
+                              onClick={() => deletePerson(person.id)}
+                              className="p-1 text-zinc-500 hover:text-red-500"
+                            >
+                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            </button>
+                          </>
                         )}
                       </li>
                     ))}
@@ -255,6 +354,7 @@ export default function ClusterPage() {
                       key={note.id}
                       note={note}
                       onDelete={deleteNote}
+                      onEdit={updateNote}
                     />
                   ))}
                 </div>

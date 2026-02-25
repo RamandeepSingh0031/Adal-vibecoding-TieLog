@@ -7,10 +7,52 @@ import { type Cluster } from '@/lib/db';
 interface ClusterCardProps {
   cluster: Cluster;
   onDelete: (id: string) => void;
+  onEdit: (id: string, data: { name: string; description: string | null }) => void;
 }
 
-export function ClusterCard({ cluster, onDelete }: ClusterCardProps) {
+export function ClusterCard({ cluster, onDelete, onEdit }: ClusterCardProps) {
   const [showDelete, setShowDelete] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState(cluster.name);
+  const [editDescription, setEditDescription] = useState(cluster.description || '');
+
+  if (isEditing) {
+    return (
+      <div className="bg-[#141419] border border-[#14B8A6] rounded-xl p-5">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            onEdit(cluster.id, { name: editName, description: editDescription || null });
+            setIsEditing(false);
+          }}
+          className="space-y-3"
+        >
+          <input
+            type="text"
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
+            className="w-full px-3 py-2 bg-[#0A0A0F] border border-[#2A2A35] rounded-lg text-[#F4F4F5] focus:outline-none focus:border-[#14B8A6]"
+            autoFocus
+          />
+          <input
+            type="text"
+            value={editDescription}
+            onChange={(e) => setEditDescription(e.target.value)}
+            placeholder="Description (optional)"
+            className="w-full px-3 py-2 bg-[#0A0A0F] border border-[#2A2A35] rounded-lg text-[#F4F4F5] placeholder-[#71717A] focus:outline-none focus:border-[#14B8A6]"
+          />
+          <div className="flex gap-2">
+            <button type="submit" className="flex-1 py-1.5 text-sm bg-[#14B8A6] text-[#0A0A0F] rounded-lg hover:bg-[#2DD4BF]">
+              Save
+            </button>
+            <button type="button" onClick={() => setIsEditing(false)} className="flex-1 py-1.5 text-sm bg-[#2A2A35] text-[#F4F4F5] rounded-lg hover:bg-[#3A3A45]">
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    );
+  }
 
   return (
     <div className="group relative bg-[#141419] border border-[#2A2A35] rounded-xl p-5 transition-all duration-200 hover:border-[#14B8A6] hover:shadow-lg">
@@ -31,6 +73,19 @@ export function ClusterCard({ cluster, onDelete }: ClusterCardProps) {
           })}
         </time>
       </Link>
+
+      <button
+        onClick={(e) => {
+          e.preventDefault();
+          setIsEditing(true);
+        }}
+        className="absolute top-4 right-10 p-2 opacity-0 group-hover:opacity-100 transition-opacity text-zinc-400 hover:text-[#14B8A6]"
+        aria-label="Edit cluster"
+      >
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+        </svg>
+      </button>
 
       <button
         onClick={(e) => {

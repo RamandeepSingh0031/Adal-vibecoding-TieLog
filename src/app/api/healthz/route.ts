@@ -9,8 +9,11 @@ import { supabase } from '@/lib/supabase';
  */
 export async function GET() {
     try {
-        // Lightweight probe — does not require auth, just checks Supabase reachability.
-        const { error } = await supabase.auth.getSession();
+        // Lightweight probe — does not require auth, checks DB reachability with RLS-safe query.
+        const { error } = await supabase
+            .from('clusters')
+            .select('id', { count: 'exact', head: true })
+            .limit(1);
 
         if (error) {
             return NextResponse.json(

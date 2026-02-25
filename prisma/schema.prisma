@@ -10,16 +10,16 @@ datasource db {
 model Profile {
   id        String   @id @default(uuid())
   email     String   @unique
-  fullName  String?
-  avatarUrl String?
+  fullName  String?  @map("full_name")
+  avatarUrl String?  @map("avatar_url")
   plan      String   @default("free") // free, pro, lifetime
-  stripeCustomerId       String?
-  stripeSubscriptionId   String?
-  subscriptionStatus      String?  // active, canceled, past_due, trialing
-  subscriptionStartDate   DateTime?
-  subscriptionEndDate     DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  stripeCustomerId       String?  @map("stripe_customer_id")
+  stripeSubscriptionId   String?  @map("stripe_subscription_id")
+  subscriptionStatus      String?  @map("subscription_status") // active, canceled, past_due, trialing
+  subscriptionStartDate   DateTime? @map("subscription_start_date")
+  subscriptionEndDate     DateTime? @map("subscription_end_date")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("profiles")
 }

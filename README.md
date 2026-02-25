@@ -77,6 +77,22 @@ TieLog is a single-player relationship journal built for partnership professiona
 - A [Supabase](https://supabase.com) project
 - A [Stripe](https://stripe.com) account (for payments)
 
+### Stripe Testing (Development)
+
+Use Stripe **test keys** for local development:
+
+1. Get test keys from [Stripe Dashboard](https://dashboard.stripe.com/test/apikeys)
+2. Update `.env.local`:
+   ```
+   STRIPE_PUBLISHABLE_KEY=pk_test_...
+   STRIPE_SECRET_KEY=sk_test_...
+   ```
+3. Test cards: `4242424242424242` (any future expiry + CVC)
+4. For webhook testing, use [Stripe CLI](https://stripe.com/docs/stripe-cli):
+   ```bash
+   stripe listen --forward-to localhost:3000/api/webhook/stripe
+   ```
+
 ### 1. Clone & install
 
 ```bash
