@@ -123,7 +123,7 @@ export function NoteEditor({ clusterId, people, organizations, selectedOrgId, on
         <textarea
           {...register('content')}
           placeholder="Write your note... Use @name for people, #org for organizations"
-          className="w-full min-h-[120px] p-4 bg-[#141419] border border-[#2A2A35] rounded-xl resize-none focus:outline-none focus:border-[#14B8A6] text-gray-200 placeholder-gray-500"
+          className="w-full min-h-[120px] p-4 bg-[#3E3E3E] border border-[#4A4A4A] rounded-xl resize-none focus:outline-none focus:border-[#14B8A6] text-gray-200 placeholder-gray-500 transition-colors"
           aria-label="Note content"
         />
         {errors.content && (
@@ -167,7 +167,7 @@ export function NoteEditor({ clusterId, people, organizations, selectedOrgId, on
           onClick={isRecording ? stopRecording : startRecording}
           className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isRecording
             ? 'bg-red-500 text-white hover:bg-red-600'
-            : 'bg-[#1C1C24] text-gray-300 hover:bg-[#2A2A35]'
+            : 'bg-[#2D2D2D] text-gray-300 hover:bg-[#3E3E3E] border border-[#4A4A4A]'
             }`}
         >
           {isRecording ? 'Stop Recording' : '🎤 Record Audio'}
@@ -175,8 +175,8 @@ export function NoteEditor({ clusterId, people, organizations, selectedOrgId, on
       </div>
 
       {audioUrl && (
-        <div className="flex items-center gap-3 p-3 bg-[#1C1C24] rounded-lg">
-          <audio src={audioUrl} controls className="flex-1" />
+        <div className="flex items-center gap-3 p-3 bg-[#2D2D2D] border border-[#4A4A4A] rounded-lg">
+          <audio src={audioUrl} controls className="flex-1 opacity-80" />
           <button
             type="button"
             onClick={() => setAudioUrl(null)}

@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY || '';
 
 // Custom storage to avoid lock issues - use sessionStorage as fallback
 const customStorage = {
@@ -37,14 +37,15 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
-    flowType: 'pkce',
+    lockType: 'custom',
+    storageKey: 'tielog-auth-v4',
   },
   global: {
     headers: {
       'x-client-info': 'tielog',
     },
   },
-});
+} as any);
 
 export type Database = {
   public: {

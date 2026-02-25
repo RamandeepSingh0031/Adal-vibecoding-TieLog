@@ -1,7 +1,7 @@
 import { supabase } from './supabase';
 import { User, Session } from '@supabase/supabase-js';
 
-export type OAuthProvider = 'github' | 'google' | 'apple';
+export type OAuthProvider = 'google' | 'apple';
 
 export const signUp = async (email: string, password: string) => {
   const { data, error } = await supabase.auth.signUp({ email, password });

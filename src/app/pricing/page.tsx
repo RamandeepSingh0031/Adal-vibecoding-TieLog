@@ -1,8 +1,38 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useAppStore } from '@/store/appStore';
 
 export default function PricingPage() {
+  const [isLoading, setIsLoading] = useState<string | null>(null);
+  const { user } = useAppStore();
+  const userPlan = user?.plan || 'free';
+
+  const handleCheckout = async (plan: 'pro' | 'lifetime') => {
+    setIsLoading(plan);
+    try {
+      const res = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan, userId: user?.id }),
+      });
+      const { url, error } = await res.json();
+      if (url) {
+        window.location.href = url;
+      } else {
+        alert(error || 'Something went wrong');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Failed to initiate checkout');
+    } finally {
+      setIsLoading(null);
+    }
+  };
+
+  const isPaidUser = userPlan === 'pro' || userPlan === 'lifetime';
+
   return (
     <main className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
       <div className="max-w-5xl mx-auto px-6 py-20">
@@ -55,13 +85,7 @@ export default function PricingPage() {
                 <svg className="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
-                Offline-first sync
-              </li>
-              <li className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
-                <svg className="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                Global search
+                Global search, & Reverse-chronology order
               </li>
             </ul>
             <Link
@@ -119,12 +143,27 @@ export default function PricingPage() {
                 Priority support
               </li>
             </ul>
-            <Link
-              href="/auth/signup"
-              className="block w-full py-3 text-center bg-gradient-to-r from-violet-500 to-purple-500 text-white rounded-xl font-medium hover:opacity-90 transition-opacity"
-            >
-              Upgrade to Pro
-            </Link>
+            {userPlan === 'free' ? (
+              <button
+                onClick={() => handleCheckout('pro')}
+                disabled={!!isLoading}
+                className="block w-full py-3 text-center bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-xl font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading === 'pro' ? 'Processing...' : 'Upgrade to Pro'}
+              </button>
+            ) : userPlan === 'pro' ? (
+              <div className="block w-full py-3 text-center bg-green-500 text-white rounded-xl font-medium">
+                Current Plan
+              </div>
+            ) : (
+              <button
+                onClick={() => handleCheckout('pro')}
+                disabled={!!isLoading}
+                className="block w-full py-3 text-center border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-xl font-medium hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading === 'pro' ? 'Processing...' : 'Switch to Pro'}
+              </button>
+            )}
           </div>
 
           {/* Lifetime */}
@@ -170,12 +209,19 @@ export default function PricingPage() {
                 Direct support
               </li>
             </ul>
-            <Link
-              href="mailto:support@tielog.app?subject=Lifetime%20Plan%20Inquiry"
-              className="block w-full py-3 text-center border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-xl font-medium hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
-            >
-              Contact Sales
-            </Link>
+            {userPlan === 'lifetime' ? (
+              <div className="block w-full py-3 text-center bg-green-500 text-white rounded-xl font-medium">
+                Current Plan
+              </div>
+            ) : (
+              <button
+                onClick={() => handleCheckout('lifetime')}
+                disabled={!!isLoading || isPaidUser}
+                className="block w-full py-3 text-center border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-xl font-medium hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading === 'lifetime' ? 'Processing...' : isPaidUser ? 'Contact for Upgrade' : 'Purchase Lifetime'}
+              </button>
+            )}
           </div>
         </div>
 

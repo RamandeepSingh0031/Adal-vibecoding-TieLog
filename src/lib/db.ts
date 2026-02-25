@@ -5,6 +5,10 @@ export interface Profile {
   email: string;
   full_name: string | null;
   avatar_url: string | null;
+  plan: string;
+  stripeCustomerId: string | null;
+  stripeSubscriptionId: string | null;
+  subscriptionStatus: string | null;
   created_at: string;
   synced?: boolean;
 }

@@ -22,11 +22,49 @@ TieLog is a single-player relationship journal built for partnership professiona
 | Language | TypeScript 5 (strict mode) |
 | Auth + Backend | Supabase (PostgreSQL + Auth) |
 | Local DB | Dexie (IndexedDB) |
-| ORM | Prisma 7 |
+| ORM | Prisma 5 |
 | State | Zustand |
 | Forms | React Hook Form + Zod |
 | Styling | Tailwind CSS 4 |
 | Tests | Vitest + jsdom |
+| Payments | Stripe |
+
+---
+
+## User Journey
+
+### 1. Sign Up / Sign In
+- **Authentication**: Email/Password or Google OAuth
+- New users create an account and land on the dashboard
+- Returning users authenticate and sync their data
+
+### 2. Dashboard (Clusters)
+- View all Clusters (top-level organization)
+- Create, edit, delete Clusters
+- Each Cluster contains Organizations
+
+### 3. Cluster View (Organizations)
+- View Organizations within a Cluster
+- Create, edit, delete Organizations
+- Each Organization contains People
+
+### 4. Organization View (People)
+- View People within an Organization
+- Create, edit, delete People
+- Add notes about each person
+
+### 5. Notes
+- Create text notes with tags
+- Optional audio recording URL
+- Notes can be linked to Cluster, Organization, or Person
+
+### 6. Search
+- Global search across all notes
+- Filter by tags, dates, or content
+
+### 7. Settings
+- Profile management (name, avatar)
+- Subscription management (Free/Pro/Lifetime tiers)
 
 ---
 
@@ -37,6 +75,7 @@ TieLog is a single-player relationship journal built for partnership professiona
 - Node.js ≥ 20
 - npm ≥ 10
 - A [Supabase](https://supabase.com) project
+- A [Stripe](https://stripe.com) account (for payments)
 
 ### 1. Clone & install
 
@@ -80,22 +119,93 @@ npm run dev
 | `npm run lint` | Run ESLint |
 | `npm test` | Run unit tests |
 | `npm run test:coverage` | Tests with coverage report |
+| `npm run test:watch` | Run tests in watch mode |
 | `npx tsc --noEmit` | TypeScript type check |
 | `npx prisma validate` | Validate Prisma schema |
 
 ---
 
-## Architecture
+## System Architecture
 
 ```
-Browser (client)
-  └── Dexie (IndexedDB) — always available, works offline
-        ↕ sync (background, online-only)
-  Supabase (PostgreSQL + Auth)
-    └── Row Level Security enforces user data isolation
+┌─────────────────────────────────────────────────────────────────┐
+│                         Browser (Client)                        │
+├─────────────────────────────────────────────────────────────────┤
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────────────┐ │
+│  │  Next.js 16 │    │   Zustand   │    │  React Hook Form    │ │
+│  │ (App Router)│    │   (State)   │    │  + Zod Validation   │ │
+│  └──────┬──────┘    └─────────────┘    └─────────────────────┘ │
+│         │                                                      │
+│  ┌──────┴──────┐    ┌─────────────┐                            │
+│  │   Dexie     │◄──►│  Supabase   │                            │
+│  │ (IndexedDB) │    │   (Remote)  │                            │
+│  └──────┬──────┘    └──────┬──────┘                            │
+│         │                  │                                    │
+│         │    ┌─────────────┴─────────────┐                      │
+│         └───►│      Sync Engine           │◄──► PostgreSQL      │
+│              │   (src/lib/sync.ts)       │    (Supabase)       │
+│              └───────────────────────────┘                      │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-All writes go to IndexedDB first. When online, the sync engine (`src/lib/sync.ts`) pushes pending changes to Supabase with automatic exponential-backoff retry.
+### Data Flow
+
+```
+User Action → Zustand Store → Dexie (IndexedDB)
+                              │
+                              ▼ (if online)
+                     Supabase Sync with
+                     exponential backoff
+                              │
+                              ▼
+                     PostgreSQL (RLS enforced)
+```
+
+### Key Modules
+
+| Module | Responsibility |
+|--------|---------------|
+| `src/lib/auth.ts` | Authentication (Supabase Auth) |
+| `src/lib/supabase.ts` | Supabase client configuration |
+| `src/lib/prisma.ts` | Prisma client for server-side DB |
+| `src/lib/db.ts` | Database operations |
+| `src/lib/sync.ts` | Offline-to-online sync engine |
+| `src/store/appStore.ts` | Global state management |
+| `src/hooks/useAuth.ts` | Authentication hook |
+
+### Route Structure
+
+```
+src/app/
+├── (authenticated)/
+│   ├── dashboard/      # Main cluster view
+│   ├── search/         # Global search
+│   └── settings/       # User settings
+├── api/
+│   ├── checkout/       # Stripe checkout
+│   ├── profile/       # Profile management
+│   └── webhook/stripe/# Stripe webhooks
+├── auth/
+│   ├── signin/        # Sign in page
+│   ├── signup/        # Sign up page
+│   └── callback/      # OAuth callback
+├── cluster/[id]/      # Cluster/Organization/Person view
+└── pricing/           # Pricing page
+```
+
+---
+
+## Database Schema
+
+```
+Profile (user profile)
+  └── Clusters (user's clusters)
+        ├── Organizations (within cluster)
+        │     ├── People (within organization)
+        │     │     └── Notes (linked to person)
+        │     └── Notes (linked to organization)
+        └── Notes (linked to cluster)
+```
 
 ---
 
@@ -105,6 +215,7 @@ All writes go to IndexedDB first. When online, the sync engine (`src/lib/sync.ts
 - **Supabase RLS** — all tables enforce row-level security scoped to the authenticated user
 - **Data isolation** — server-side queries filter by `user_id` and `cluster_id` chains
 - **Secrets** — environment variables only; never committed to source control (see `.env.example`)
+- **Form validation** — Zod schemas validate all inputs server-side
 
 > ⚠️ **E2EE is a planned milestone.** Note content is currently transmitted over TLS and stored encrypted at rest by Supabase. True client-side end-to-end encryption is tracked as a future sprint.
 

@@ -9,9 +9,11 @@ import { signOut } from '@/lib/auth';
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  isCollapsed?: boolean;
+  onToggle?: () => void;
 }
 
-export function Sidebar({ isOpen, onClose }: SidebarProps) {
+export function Sidebar({ isOpen, onClose, isCollapsed, onToggle }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, clearUserData } = useAppStore();
@@ -68,20 +70,28 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 z-50 h-full w-64 bg-[#0A0A0F] border-r border-[#2A2A35] transform transition-transform duration-300 lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'
-          }`}
+        className={`fixed top-0 left-0 z-50 h-full bg-[#2D2D2D] border-r border-[#3E3E3E] transition-all duration-300 lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'
+          } ${isCollapsed ? 'w-20' : 'w-64'}`}
       >
         <div className="flex flex-col h-full">
-          {/* Logo */}
-          <div className="p-6 border-b border-[#2A2A35]">
+          {/* Logo & Toggle */}
+          <div className={`p-6 border-b border-[#3E3E3E] flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
             <Link href="/dashboard" className="flex items-center gap-2" onClick={onClose}>
-              <div className="w-8 h-8 rounded-lg bg-[#14B8A6] flex items-center justify-center shadow-[0_0_15px_rgba(20,184,166,0.4)]">
-                <svg className="w-5 h-5 text-[#0A0A0F]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-              </div>
-              <span className="text-xl font-semibold tracking-tight text-[#F4F4F5]">TieLog</span>
+              <img src="/logo.jpg" alt="TieLog Logo" className="w-8 h-8 rounded-lg object-cover shadow-[0_4px_12px_rgba(20,184,166,0.3)] flex-shrink-0" />
+              {!isCollapsed && (
+                <span className="text-xl font-semibold tracking-tight text-[#F4F4F5]">TieLog</span>
+              )}
             </Link>
+            {!isCollapsed && (
+              <button
+                onClick={onToggle}
+                className="hidden lg:flex p-1.5 rounded-lg hover:bg-[#3E3E3E] text-[#71717A] transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                </svg>
+              </button>
+            )}
           </div>
 
           {/* Navigation */}
@@ -96,26 +106,92 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                   aria-current={isActive ? 'page' : undefined}
                   className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${isActive
                     ? 'bg-[#14B8A6]/10 text-[#14B8A6] border border-[#14B8A6]/20'
-                    : 'text-[#A1A1AA] hover:bg-[#1C1C24] hover:text-[#F4F4F5]'
-                    }`}
+                    : 'text-[#A1A1AA] hover:bg-[#3E3E3E] hover:text-[#F4F4F5]'
+                    } ${isCollapsed ? 'justify-center' : ''}`}
+                  title={isCollapsed ? item.label : undefined}
                 >
-                  {item.icon}
-                  {item.label}
+                  <div className="flex-shrink-0">{item.icon}</div>
+                  {!isCollapsed && <span>{item.label}</span>}
                 </Link>
               );
             })}
           </nav>
 
+          {/* Expand Button (If Collapsed) */}
+          {isCollapsed && (
+            <div className="p-4 flex justify-center border-t border-[#3E3E3E]">
+              <button
+                onClick={onToggle}
+                className="p-2 rounded-lg hover:bg-[#3E3E3E] text-[#71717A] transition-colors"
+                title="Expand Sidebar"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+          )}
+
+          {/* Upgrade Section - Only show for free users */}
+          {(user?.plan === 'free' || !user?.plan) && (
+            <div className="p-4 border-t border-[#3E3E3E]">
+              <button
+                onClick={async () => {
+                  try {
+                    const res = await fetch('/api/checkout', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ plan: 'pro', userId: user?.id }),
+                    });
+                    const { url, error } = await res.json();
+                    if (url) {
+                      window.location.href = url;
+                    } else {
+                      alert(error || 'Checkout failed');
+                    }
+                  } catch (err) {
+                    console.error('Checkout failed:', err);
+                    alert('Something went wrong. Please try again.');
+                  }
+                }}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-[#14B8A6] to-[#0D9488] text-[#0A0A0F] font-bold transition-all hover:scale-[1.02] active:scale-[0.98] shadow-[0_0_20px_rgba(20,184,166,0.15)] ${isCollapsed ? 'justify-center p-3' : ''
+                  }`}
+              >
+                <div className="flex-shrink-0">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-7.714 2.143L11 21l-2.286-6.857L1 12l7.714-2.143L11 3z" />
+                  </svg>
+                </div>
+                {!isCollapsed && <span>Upgrade to Pro</span>}
+              </button>
+            </div>
+          )}
+
+          {/* Show current plan for paid users */}
+          {user?.plan && user.plan !== 'free' && (
+            <div className="p-4 border-t border-[#3E3E3E]">
+              <div className={`flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-violet-500 to-purple-500 text-white font-medium ${isCollapsed ? 'justify-center p-3' : ''}`}>
+                <div className="flex-shrink-0">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-7.714 2.143L11 21l-2.286-6.857L1 12l7.714-2.143L11 3z" />
+                  </svg>
+                </div>
+                {!isCollapsed && <span>{user.plan === 'lifetime' ? 'Lifetime' : 'Pro'} Member</span>}
+              </div>
+            </div>
+          )}
+
           {/* Profile Section */}
-          <div className="p-4 border-t border-[#2A2A35]">
+          <div className="p-4 border-t border-[#3E3E3E]">
             <div className="relative">
               <button
                 onClick={() => setShowProfileMenu(!showProfileMenu)}
                 aria-expanded={showProfileMenu}
                 aria-label="Open profile menu"
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#1C1C24] transition-colors"
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#3E3E3E] transition-colors ${isCollapsed ? 'justify-center' : ''
+                  }`}
               >
-                <div className="w-8 h-8 rounded-full bg-[#2A2A35] flex items-center justify-center text-[#A1A1AA]">
+                <div className="w-8 h-8 rounded-full bg-[#2A2A35] flex items-center justify-center text-[#A1A1AA] flex-shrink-0">
                   {user?.full_name ? (
                     <span className="text-sm font-medium">
                       {user.full_name.charAt(0).toUpperCase()}
@@ -126,35 +202,40 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                     </svg>
                   )}
                 </div>
-                <div className="flex-1 text-left">
-                  <p className="text-sm font-medium text-[#F4F4F5] truncate">
-                    {user?.full_name || user?.email || 'Profile'}
-                  </p>
-                  <p className="text-xs text-[#71717A] truncate">
-                    {user?.email || ''}
-                  </p>
-                </div>
-                <svg
-                  className={`w-4 h-4 text-[#71717A] transition-transform ${showProfileMenu ? 'rotate-180' : ''
-                    }`}
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
+                {!isCollapsed && (
+                  <>
+                    <div className="flex-1 text-left min-w-0">
+                      <p className="text-sm font-medium text-[#F4F4F5] truncate">
+                        {user?.full_name || user?.email || 'Profile'}
+                      </p>
+                      <p className="text-xs text-[#71717A] truncate">
+                        {user?.email || ''}
+                      </p>
+                    </div>
+                    <svg
+                      className={`w-4 h-4 text-[#71717A] transition-transform ${showProfileMenu ? 'rotate-180' : ''
+                        }`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </>
+                )}
               </button>
 
               {/* Profile Dropdown */}
               {showProfileMenu && (
-                <div className="absolute bottom-full left-0 right-0 mb-2 bg-[#141419] border border-[#2A2A35] rounded-xl overflow-hidden shadow-lg">
+                <div className={`absolute bottom-full mb-2 bg-[#2D2D2D] border border-[#3E3E3E] rounded-xl overflow-hidden shadow-lg ${isCollapsed ? 'left-14 w-48' : 'left-0 right-0'
+                  }`}>
                   <Link
                     href="/settings"
                     onClick={() => {
                       setShowProfileMenu(false);
                       onClose();
                     }}
-                    className="flex items-center gap-3 px-4 py-3 text-sm text-[#A1A1AA] hover:bg-[#1C1C24] hover:text-[#F4F4F5] transition-colors"
+                    className="flex items-center gap-3 px-4 py-3 text-sm text-[#A1A1AA] hover:bg-[#3E3E3E] hover:text-[#F4F4F5] transition-colors"
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />

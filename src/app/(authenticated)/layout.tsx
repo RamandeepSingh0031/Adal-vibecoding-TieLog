@@ -9,9 +9,10 @@ export default function AuthenticatedLayout({
   children: React.ReactNode;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
-    <div className="min-h-screen bg-[#0A0A0F]">
+    <div className="min-h-screen bg-[#3E3E3E]">
       {/* Mobile menu button */}
       <div className="lg:hidden fixed top-4 left-4 z-30">
         <button
@@ -25,10 +26,15 @@ export default function AuthenticatedLayout({
       </div>
 
       {/* Sidebar */}
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Sidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        isCollapsed={isCollapsed}
+        onToggle={() => setIsCollapsed(!isCollapsed)}
+      />
 
       {/* Main content */}
-      <main className="lg:pl-64">
+      <main className={`transition-all duration-300 ${isCollapsed ? 'lg:pl-20' : 'lg:pl-64'}`}>
         {children}
       </main>
     </div>

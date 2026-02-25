@@ -84,17 +84,17 @@ export default function ClusterPage() {
 
   if (!cluster) {
     return (
-      <div className="min-h-screen bg-[#0A0A0F] flex items-center justify-center">
-        <p className="text-[#71717A]">Cluster not found</p>
+      <div className="min-h-screen bg-[#3E3E3E] flex items-center justify-center">
+        <p className="text-[#A1A1AA]">Cluster not found</p>
       </div>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[#0A0A0F]">
+    <main className="min-h-screen bg-[#3E3E3E]">
       <div className="max-w-4xl mx-auto px-6 py-8">
         <Link
-          href="/"
+          href="/dashboard"
           className="inline-flex items-center gap-2 text-[#A1A1AA] hover:text-[#F4F4F5] mb-6 transition-colors"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -128,13 +128,13 @@ export default function ClusterPage() {
               </div>
 
               {showOrgForm && (
-                <form onSubmit={handleAddOrg} className="mb-3 p-3 bg-[#141419] border border-[#2A2A35] rounded-lg">
+                <form onSubmit={handleAddOrg} className="mb-3 p-3 bg-[#2D2D2D] border border-[#4A4A4A] rounded-lg shadow-lg">
                   <input
                     type="text"
                     value={newOrgName}
                     onChange={(e) => setNewOrgName(e.target.value)}
                     placeholder="Organization name"
-                    className="w-full px-3 py-2 text-sm bg-[#1C1C24] border border-[#2A2A35] rounded-lg text-[#F4F4F5] placeholder-[#71717A]"
+                    className="w-full px-3 py-2 text-sm bg-[#3E3E3E] border border-[#4A4A4A] rounded-lg text-[#F4F4F5] placeholder-[#71717A] focus:outline-none focus:border-[#14B8A6] transition-colors"
                     autoFocus
                   />
                   <button
@@ -156,7 +156,7 @@ export default function ClusterPage() {
                         onClick={() => setSelectedOrgId(org.id)}
                         className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${selectedOrgId === org.id
                           ? 'bg-[#14B8A6]/20 text-[#14B8A6] border border-[#14B8A6]/30'
-                          : 'hover:bg-[#1C1C24] text-[#A1A1AA] hover:text-[#F4F4F5]'
+                          : 'hover:bg-[#2D2D2D] text-[#A1A1AA] hover:text-[#F4F4F5]'
                           }`}
                       >
                         {org.name}
@@ -182,13 +182,13 @@ export default function ClusterPage() {
                 </div>
 
                 {showPersonForm && (
-                  <form onSubmit={handleAddPerson} className="mb-3 p-3 bg-[#141419] border border-[#2A2A35] rounded-lg space-y-2">
+                  <form onSubmit={handleAddPerson} className="mb-3 p-3 bg-[#2D2D2D] border border-[#4A4A4A] rounded-lg space-y-2 shadow-lg">
                     <input
                       type="text"
                       value={newPersonName}
                       onChange={(e) => setNewPersonName(e.target.value)}
                       placeholder="Person name"
-                      className="w-full px-3 py-2 text-sm bg-[#1C1C24] border border-[#2A2A35] rounded-lg text-[#F4F4F5] placeholder-[#71717A]"
+                      className="w-full px-3 py-2 text-sm bg-[#3E3E3E] border border-[#4A4A4A] rounded-lg text-[#F4F4F5] placeholder-[#71717A] focus:outline-none focus:border-[#14B8A6] transition-colors"
                       autoFocus
                     />
                     <input
@@ -196,7 +196,7 @@ export default function ClusterPage() {
                       value={newPersonRole}
                       onChange={(e) => setNewPersonRole(e.target.value)}
                       placeholder="Role (optional)"
-                      className="w-full px-3 py-2 text-sm bg-[#1C1C24] border border-[#2A2A35] rounded-lg text-[#F4F4F5] placeholder-[#71717A]"
+                      className="w-full px-3 py-2 text-sm bg-[#3E3E3E] border border-[#4A4A4A] rounded-lg text-[#F4F4F5] placeholder-[#71717A] focus:outline-none focus:border-[#14B8A6] transition-colors"
                     />
                     <button
                       type="submit"

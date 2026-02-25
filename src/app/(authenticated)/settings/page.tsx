@@ -28,12 +28,12 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0A0F]">
+    <div className="min-h-screen bg-[#3E3E3E]">
       <div className="max-w-2xl mx-auto px-6 py-12">
         <h1 className="text-2xl font-semibold text-[#F4F4F5] mb-8">Settings</h1>
 
         <div className="space-y-8">
-          <section className="bg-[#141419] border border-[#2A2A35] rounded-2xl p-6">
+          <section className="bg-[#2D2D2D] border border-[#4A4A4A] rounded-2xl p-6 shadow-lg">
             <h2 className="text-lg font-medium text-[#F4F4F5] mb-4">Profile</h2>
             <form onSubmit={handleSave} className="space-y-4">
               <div>
@@ -42,7 +42,7 @@ export default function SettingsPage() {
                   type="email"
                   value={user?.email || ''}
                   disabled
-                  className="w-full px-4 py-3 bg-[#1C1C24] border border-[#2A2A35] rounded-xl text-[#71717A] cursor-not-allowed"
+                  className="w-full px-4 py-3 bg-[#3E3E3E] border border-[#4A4A4A] rounded-xl text-[#A1A1AA] opacity-60 cursor-not-allowed"
                 />
               </div>
               <div>
@@ -52,7 +52,7 @@ export default function SettingsPage() {
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="Your name"
-                  className="w-full px-4 py-3 bg-[#1C1C24] border border-[#2A2A35] rounded-xl text-[#F4F4F5] placeholder-[#71717A] focus:outline-none focus:border-[#14B8A6]"
+                  className="w-full px-4 py-3 bg-[#3E3E3E] border border-[#4A4A4A] rounded-xl text-[#F4F4F5] placeholder-[#71717A] focus:outline-none focus:border-[#14B8A6] transition-colors"
                 />
               </div>
               {message && (

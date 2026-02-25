@@ -33,7 +33,7 @@ export function NoteCard({ note, onDelete }: NoteCardProps) {
     <>
       <article
         onClick={() => setIsExpanded(true)}
-        className="group relative bg-[#141419] border border-[#2A2A35] rounded-xl p-5 transition-all duration-200 hover:border-[#14B8A6] cursor-pointer"
+        className="group relative bg-[#2D2D2D] border border-[#4A4A4A] rounded-xl p-5 transition-all duration-200 hover:border-[#14B8A6] cursor-pointer shadow-md hover:shadow-xl"
       >
         <div className="flex items-center gap-2 mb-2 text-xs text-zinc-500">
           {organization && (
@@ -71,7 +71,7 @@ export function NoteCard({ note, onDelete }: NoteCardProps) {
           </div>
         )}
 
-        <div className="flex items-center justify-between mt-4 pt-3 border-t border-[#2A2A35]">
+        <div className="flex items-center justify-between mt-4 pt-3 border-t border-[#4A4A4A]">
           <time className="text-xs text-zinc-400">
             {new Date(note.created_at).toLocaleDateString('en-US', {
               month: 'short',
@@ -117,7 +117,7 @@ export function NoteCard({ note, onDelete }: NoteCardProps) {
           onClick={() => setIsExpanded(false)}
         >
           <div
-            className="bg-[#141419] rounded-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto p-6 border border-[#2A2A35]"
+            className="bg-[#2D2D2D] rounded-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto p-6 border border-[#3E3E3E] shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between mb-4">
@@ -146,7 +146,7 @@ export function NoteCard({ note, onDelete }: NoteCardProps) {
             </div>
 
             {note.tags && note.tags.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-4 pt-4 border-t border-[#2A2A35]">
+              <div className="flex flex-wrap gap-1 mt-4 pt-4 border-t border-[#4A4A4A]">
                 {note.tags.map((tag) => (
                   <span
                     key={tag}
@@ -159,7 +159,7 @@ export function NoteCard({ note, onDelete }: NoteCardProps) {
             )}
 
             {hasAudio && (
-              <div className="mt-4 pt-4 border-t border-[#2A2A35]">
+              <div className="mt-4 pt-4 border-t border-[#4A4A4A]">
                 <audio src={note.audio_url!} controls className="w-full" />
               </div>
             )}

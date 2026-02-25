@@ -43,10 +43,32 @@ export function useAuth() {
               email: session.user.email || '',
               full_name: session.user.user_metadata?.full_name || null,
               avatar_url: session.user.user_metadata?.avatar_url || null,
+              plan: 'free',
+              stripeCustomerId: null,
+              stripeSubscriptionId: null,
+              subscriptionStatus: null,
               created_at: new Date().toISOString(),
               synced: false,
             };
             await db.profiles.put(profile);
+          }
+
+          // Fetch latest profile with plan from Prisma
+          try {
+            const res = await fetch(`/api/profile?userId=${session.user.id}`);
+            if (res.ok) {
+              const prismaProfile = await res.json();
+              profile = {
+                ...profile,
+                plan: prismaProfile.plan || 'free',
+                stripeCustomerId: prismaProfile.stripeCustomerId,
+                stripeSubscriptionId: prismaProfile.stripeSubscriptionId,
+                subscriptionStatus: prismaProfile.subscriptionStatus,
+              };
+              await db.profiles.put(profile);
+            }
+          } catch (err) {
+            console.error('Failed to fetch profile plan:', err);
           }
 
           setStoreUser(profile);
